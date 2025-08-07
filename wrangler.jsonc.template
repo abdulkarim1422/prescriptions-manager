@@ -1,0 +1,13 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "prescriptions-demo",
+  "compatibility_date": "2024-04-03",
+  "main": "./src/index.tsx",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "prescriptions-db",
+      "database_id": "xxxxxx-xxxx-xxxx-xxxx-xxxxxxx"
+    }
+  ]
+}

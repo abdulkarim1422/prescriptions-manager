@@ -1,6 +1,0 @@
-{
-  "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "prescriptions-demo",
-  "compatibility_date": "2024-04-03",
-  "main": "./src/index.tsx"
-}
