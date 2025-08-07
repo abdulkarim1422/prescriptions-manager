@@ -210,7 +210,7 @@ export class DatabaseService {
   async logSearch(query: string, searchType: string, resultsCount: number, userId?: string): Promise<void> {
     await this.db.prepare(
       'INSERT INTO search_logs (query, search_type, results_count, user_id) VALUES (?, ?, ?, ?)'
-    ).bind(query, searchType, resultsCount, userId).run();
+    ).bind(query, searchType, resultsCount, userId || null).run();
   }
 
   // Configuration
