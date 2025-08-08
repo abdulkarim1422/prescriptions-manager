@@ -47,7 +47,7 @@ export function PrescriptionCard({ prescription, onEdit, onDelete, onView }: Pre
         <p className="text-gray-600 text-sm mb-3">{prescription.description}</p>
       )}
       
-      {prescription.items && prescription.items.length > 0 && (
+      {prescription.items && Array.isArray(prescription.items) && prescription.items.length > 0 && (
         <div className="space-y-2 mb-3">
           <h4 className="text-sm font-medium text-gray-700">Medications:</h4>
           <div className="space-y-1">
@@ -68,7 +68,7 @@ export function PrescriptionCard({ prescription, onEdit, onDelete, onView }: Pre
         </div>
       )}
       
-      {prescription.diseases && prescription.diseases.length > 0 && (
+      {prescription.diseases && Array.isArray(prescription.diseases) && prescription.diseases.length > 0 && (
         <div className="space-y-2">
           <h4 className="text-sm font-medium text-gray-700">Associated Conditions:</h4>
           <div className="flex flex-wrap gap-1">

@@ -33,22 +33,22 @@ export function PrescriptionsApp() {
       ])
 
       if (prescriptionsRes.ok) {
-        const data = await prescriptionsRes.json()
-        setPrescriptions(data.results || [])
+        const data = await prescriptionsRes.json() as any
+        setPrescriptions(Array.isArray(data.results) ? data.results : [])
       }
 
       if (diseasesRes.ok) {
-        const data = await diseasesRes.json()
-        setDiseases(data.results || [])
+        const data = await diseasesRes.json() as any
+        setDiseases(Array.isArray(data.results) ? data.results : [])
       }
 
       if (medicationsRes.ok) {
-        const data = await medicationsRes.json()
-        setMedications(data.results || [])
+        const data = await medicationsRes.json() as any
+        setMedications(Array.isArray(data.results) ? data.results : [])
       }
 
-      if (configRes.ok) {
-        const configData = await configRes.json()
+      if (configRes.ok && 'json' in configRes) {
+        const configData = await configRes.json() as any
         setConfig(prev => ({ ...prev, ai_enabled: configData.value === 'true' }))
       }
     } catch (error) {
@@ -77,11 +77,19 @@ export function PrescriptionsApp() {
       })
 
       if (response.ok) {
-        const data = await response.json()
-        setSearchResults(data.results || [])
+        const data = await response.json() as any
+        // Ensure we have valid results data
+        if (data && data.results) {
+          setSearchResults(data.results)
+        } else {
+          setSearchResults([])
+        }
+      } else {
+        setSearchResults([])
       }
     } catch (error) {
       console.error('Search failed:', error)
+      setSearchResults([])
     } finally {
       setLoading(false)
     }
@@ -96,8 +104,10 @@ export function PrescriptionsApp() {
       })
 
       if (response.ok) {
-        const newPrescription = await response.json()
-        setPrescriptions(prev => [...prev, newPrescription])
+        const newPrescription = await response.json() as any
+        if (newPrescription && typeof newPrescription === 'object') {
+          setPrescriptions(prev => [...prev, newPrescription as PrescriptionTemplate])
+        }
         setShowCreateModal(false)
       }
     } catch (error) {
@@ -133,7 +143,7 @@ export function PrescriptionsApp() {
               />
             </div>
             
-            {searchResults.length > 0 && (
+            {(Array.isArray(searchResults) ? searchResults.length > 0 : Object.keys(searchResults).length > 0) && (
               <div className="card">
                 <h3 className="text-lg font-medium mb-4">Search Results</h3>
                 <div className="space-y-4">
@@ -147,7 +157,7 @@ export function PrescriptionsApp() {
                     Object.entries(searchResults).map(([type, results]) => (
                       <div key={type} className="space-y-2">
                         <h4 className="font-medium capitalize">{type}</h4>
-                        {(results as any[]).map((item, index) => (
+                        {Array.isArray(results) && results.map((item, index) => (
                           <div key={index} className="p-3 bg-gray-50 rounded">
                             <div className="font-medium">{item.name}</div>
                             <div className="text-sm text-gray-600">{item.description || item.code}</div>

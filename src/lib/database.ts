@@ -16,7 +16,7 @@ export class DatabaseService {
     ).bind(searchQuery, searchQuery, searchQuery, limit, offset).all();
 
     return {
-      results: results.results as Disease[],
+      results: results.results as unknown as Disease[],
       total: (countResult as any)?.total || 0,
       has_more: offset + limit < ((countResult as any)?.total || 0)
     };
@@ -24,14 +24,14 @@ export class DatabaseService {
 
   async getDiseaseById(id: number): Promise<Disease | null> {
     const result = await this.db.prepare('SELECT * FROM diseases WHERE id = ?').bind(id).first();
-    return result as Disease | null;
+    return result as unknown as Disease | null;
   }
 
   async createDisease(disease: Omit<Disease, 'id' | 'created_at' | 'updated_at'>): Promise<Disease> {
     const result = await this.db.prepare(
       'INSERT INTO diseases (code, name, description, category) VALUES (?, ?, ?, ?) RETURNING *'
     ).bind(disease.code, disease.name, disease.description, disease.category).first();
-    return result as Disease;
+    return result as unknown as Disease;
   }
 
   // Medication operations
@@ -47,7 +47,7 @@ export class DatabaseService {
     ).bind(searchQuery, searchQuery, searchQuery, limit, offset).all();
 
     return {
-      results: results.results as Medication[],
+      results: results.results as unknown as Medication[],
       total: (countResult as any)?.total || 0,
       has_more: offset + limit < ((countResult as any)?.total || 0)
     };
@@ -60,7 +60,7 @@ export class DatabaseService {
 
   async getAllMedications(): Promise<Medication[]> {
     const result = await this.db.prepare('SELECT * FROM medications ORDER BY name').all();
-    return result.results as Medication[];
+    return result.results as unknown as Medication[];
   }
 
   async createMedication(medication: Omit<Medication, 'id' | 'created_at' | 'updated_at'>): Promise<Medication> {
@@ -74,7 +74,7 @@ export class DatabaseService {
       medication.manufacturer,
       medication.category
     ).first();
-    return result as Medication;
+    return result as unknown as Medication;
   }
 
   // Prescription template operations
@@ -90,7 +90,7 @@ export class DatabaseService {
     ).bind(searchQuery, searchQuery, limit, offset).all();
 
     return {
-      results: results.results as PrescriptionTemplate[],
+      results: results.results as unknown as PrescriptionTemplate[],
       total: (countResult as any)?.total || 0,
       has_more: offset + limit < ((countResult as any)?.total || 0)
     };
@@ -119,8 +119,8 @@ export class DatabaseService {
 
     return {
       ...prescription,
-      items: items.results as PrescriptionItem[],
-      diseases: diseases.results as Disease[]
+      items: items.results as unknown as PrescriptionItem[],
+      diseases: diseases.results as unknown as Disease[]
     };
   }
 
@@ -192,7 +192,7 @@ export class DatabaseService {
       ORDER BY dp.confidence_score DESC, pt.name
     `).bind(diseaseId).all();
 
-    return result.results as PrescriptionTemplate[];
+    return result.results as unknown as PrescriptionTemplate[];
   }
 
   async getDiseasesForPrescription(prescriptionId: number): Promise<Disease[]> {
@@ -203,7 +203,7 @@ export class DatabaseService {
       WHERE dp.prescription_template_id = ?
     `).bind(prescriptionId).all();
 
-    return result.results as Disease[];
+    return result.results as unknown as Disease[];
   }
 
   // Search logs
