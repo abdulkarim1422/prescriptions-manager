@@ -35,6 +35,11 @@ lerna-debug.log*
 
 # other
 PRD.md
+*.txt
+data
 
 # cloudflare
 wrangler.jsonc
+
+# db
+migrations/
