@@ -1,0 +1,390 @@
+import { useState, useEffect } from 'react'
+import { Search, Filter, ChevronDown, Plus } from 'lucide-react'
+import { Drug } from '../types'
+
+interface DrugsResponse {
+  results: Drug[]
+  total: number
+  has_more: boolean
+}
+
+interface MedicationsViewProps {
+  onShowCreateDrug: () => void
+  onShowImportDrugs: () => void
+  importingDrugs: boolean
+  importSummary: string | null
+}
+
+interface SearchFilters {
+  productName: boolean
+  activeIngredient: boolean
+  atcCode: boolean
+  barcode: boolean
+  categories: boolean
+  description: boolean
+}
+
+interface PaginationState {
+  currentPage: number
+  totalCount: number
+  hasMore: boolean
+  loading: boolean
+}
+
+export function MedicationsView({ 
+  onShowCreateDrug, 
+  onShowImportDrugs, 
+  importingDrugs, 
+  importSummary 
+}: MedicationsViewProps) {
+  const [drugs, setDrugs] = useState<Drug[]>([])
+  const [searchQuery, setSearchQuery] = useState('')
+  const [showFilters, setShowFilters] = useState(false)
+  const [filters, setFilters] = useState<SearchFilters>({
+    productName: true,
+    activeIngredient: true,
+    atcCode: true,
+    barcode: false,
+    categories: false,
+    description: false
+  })
+  const [pagination, setPagination] = useState<PaginationState>({
+    currentPage: 1,
+    totalCount: 0,
+    hasMore: false,
+    loading: false
+  })
+
+  const ITEMS_PER_PAGE = 100
+
+  useEffect(() => {
+    loadDrugs(true) // Reset to first page
+  }, [])
+
+  useEffect(() => {
+    // Debounce search
+    const timeoutId = setTimeout(() => {
+      if (searchQuery.trim() !== '') {
+        searchDrugs()
+      } else {
+        loadDrugs(true)
+      }
+    }, 500)
+
+    return () => clearTimeout(timeoutId)
+  }, [searchQuery, filters])
+
+  const loadDrugs = async (reset = false) => {
+    const page = reset ? 1 : pagination.currentPage
+    const offset = (page - 1) * ITEMS_PER_PAGE
+
+    try {
+      setPagination(prev => ({ ...prev, loading: true }))
+      
+      const response = await fetch(`/api/drugs?limit=${ITEMS_PER_PAGE}&offset=${offset}`)
+      if (response.ok) {
+        const data = await response.json() as DrugsResponse
+        
+        if (reset) {
+          setDrugs(data.results || [])
+        } else {
+          setDrugs(prev => [...prev, ...(data.results || [])])
+        }
+
+        setPagination({
+          currentPage: page,
+          totalCount: data.total || 0,
+          hasMore: data.has_more || false,
+          loading: false
+        })
+      }
+    } catch (error) {
+      console.error('Failed to load drugs:', error)
+      setPagination(prev => ({ ...prev, loading: false }))
+    }
+  }
+
+  const searchDrugs = async (reset = true) => {
+    if (searchQuery.trim().length < 2) {
+      loadDrugs(true)
+      return
+    }
+
+    const page = reset ? 1 : pagination.currentPage
+    const offset = (page - 1) * ITEMS_PER_PAGE
+
+    try {
+      setPagination(prev => ({ ...prev, loading: true }))
+      
+      // Build search fields based on filters
+      const searchFields = []
+      if (filters.productName) searchFields.push('product_name')
+      if (filters.activeIngredient) searchFields.push('active_ingredient')
+      if (filters.atcCode) searchFields.push('atc_code')
+      if (filters.barcode) searchFields.push('barcode')
+      if (filters.categories) searchFields.push('categories')
+      if (filters.description) searchFields.push('description')
+
+      const queryParams = new URLSearchParams({
+        q: searchQuery.trim(),
+        limit: ITEMS_PER_PAGE.toString(),
+        offset: offset.toString(),
+        fields: searchFields.join(',')
+      })
+
+      const response = await fetch(`/api/drugs?${queryParams}`)
+      if (response.ok) {
+        const data = await response.json() as DrugsResponse
+        
+        if (reset) {
+          setDrugs(data.results || [])
+        } else {
+          setDrugs(prev => [...prev, ...(data.results || [])])
+        }
+
+        setPagination({
+          currentPage: page,
+          totalCount: data.total || 0,
+          hasMore: data.has_more || false,
+          loading: false
+        })
+      }
+    } catch (error) {
+      console.error('Failed to search drugs:', error)
+      setPagination(prev => ({ ...prev, loading: false }))
+    }
+  }
+
+  const handleLoadMore = () => {
+    if (pagination.hasMore && !pagination.loading) {
+      setPagination(prev => ({ ...prev, currentPage: prev.currentPage + 1 }))
+      
+      if (searchQuery.trim() !== '') {
+        searchDrugs(false)
+      } else {
+        loadDrugs(false)
+      }
+    }
+  }
+
+  const handleFilterChange = (key: keyof SearchFilters) => {
+    setFilters(prev => ({ ...prev, [key]: !prev[key] }))
+  }
+
+  const clearSearch = () => {
+    setSearchQuery('')
+  }
+
+  const activeFiltersCount = Object.values(filters).filter(Boolean).length
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Medications</h2>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onShowCreateDrug}
+            className="btn-primary flex items-center gap-2"
+            title="Add a drug manually"
+          >
+            <Plus size={18} />
+            Add Drug
+          </button>
+          <button
+            onClick={onShowImportDrugs}
+            className={`btn-secondary flex items-center gap-2 ${importingDrugs ? 'opacity-60 cursor-not-allowed' : ''}`}
+            disabled={importingDrugs}
+            title="Import drugs from JSON"
+          >
+            <Plus size={18} />
+            {importingDrugs ? 'Importing…' : 'Import'}
+          </button>
+        </div>
+      </div>
+
+      {/* Import Summary */}
+      {importSummary && (
+        <div className="text-sm text-gray-700 bg-gray-100 rounded px-3 py-2">
+          {importSummary}
+        </div>
+      )}
+
+      {/* Search and Filters */}
+      <div className="space-y-4">
+        {/* Search Bar */}
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <Search className="h-5 w-5 text-gray-400" />
+          </div>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="input-field pl-10 pr-10"
+            placeholder="Search medications... (min 2 characters)"
+          />
+          {searchQuery && (
+            <button
+              onClick={clearSearch}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+
+        {/* Filter Toggle */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className="btn-secondary flex items-center gap-2"
+          >
+            <Filter size={16} />
+            Search Fields ({activeFiltersCount})
+            <ChevronDown 
+              size={16} 
+              className={`transform transition-transform ${showFilters ? 'rotate-180' : ''}`} 
+            />
+          </button>
+          
+          <div className="text-sm text-gray-600">
+            Showing {drugs.length} of {pagination.totalCount} medications
+          </div>
+        </div>
+
+        {/* Filter Options */}
+        {showFilters && (
+          <div className="bg-gray-50 rounded-lg p-4 border">
+            <h4 className="font-medium text-gray-700 mb-3">Search in:</h4>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={filters.productName}
+                  onChange={() => handleFilterChange('productName')}
+                  className="mr-2"
+                />
+                Product Name
+              </label>
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={filters.activeIngredient}
+                  onChange={() => handleFilterChange('activeIngredient')}
+                  className="mr-2"
+                />
+                Active Ingredient
+              </label>
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={filters.atcCode}
+                  onChange={() => handleFilterChange('atcCode')}
+                  className="mr-2"
+                />
+                ATC Code
+              </label>
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={filters.barcode}
+                  onChange={() => handleFilterChange('barcode')}
+                  className="mr-2"
+                />
+                Barcode
+              </label>
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={filters.categories}
+                  onChange={() => handleFilterChange('categories')}
+                  className="mr-2"
+                />
+                Categories
+              </label>
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={filters.description}
+                  onChange={() => handleFilterChange('description')}
+                  className="mr-2"
+                />
+                Description
+              </label>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Results */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {drugs.map(drug => (
+          <div key={drug.id} className="card">
+            <div className="font-medium">{drug.product_name || 'Unknown Product'}</div>
+            {drug.active_ingredient && (
+              <div className="text-sm text-gray-600">Active: {drug.active_ingredient}</div>
+            )}
+            {drug.atc_code && (
+              <div className="text-sm text-gray-500">ATC: {drug.atc_code}</div>
+            )}
+            {drug.barcode && (
+              <div className="text-xs text-gray-400 mt-1">Barcode: {drug.barcode}</div>
+            )}
+            {drug.categories && drug.categories.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-2">
+                {drug.categories.slice(0, 3).map((category, index) => (
+                  <div key={index} className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                    {category}
+                  </div>
+                ))}
+                {drug.categories.length > 3 && (
+                  <div className="text-xs text-gray-500">+{drug.categories.length - 3} more</div>
+                )}
+              </div>
+            )}
+            {drug.description && (
+              <div className="text-sm text-gray-500 mt-2 line-clamp-2">{drug.description}</div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Load More Button */}
+      {pagination.hasMore && (
+        <div className="text-center">
+          <button
+            onClick={handleLoadMore}
+            disabled={pagination.loading}
+            className="btn-secondary flex items-center gap-2 mx-auto"
+          >
+            {pagination.loading ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600"></div>
+                Loading...
+              </>
+            ) : (
+              <>
+                Load More ({pagination.totalCount - drugs.length} remaining)
+              </>
+            )}
+          </button>
+        </div>
+      )}
+
+      {/* No Results */}
+      {drugs.length === 0 && !pagination.loading && (
+        <div className="text-center py-12">
+          <div className="text-gray-500 text-lg">
+            {searchQuery ? `No medications found for "${searchQuery}"` : 'No medications found'}
+          </div>
+          {searchQuery && (
+            <button onClick={clearSearch} className="btn-secondary mt-4">
+              Clear Search
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}

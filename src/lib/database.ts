@@ -78,20 +78,52 @@ export class DatabaseService {
   }
 
   // Drugs operations (TR dataset)
-  async searchDrugs(query: string, limit: number = 20, offset: number = 0): Promise<SearchResponse<Drug>> {
+  async searchDrugs(query: string, limit: number = 20, offset: number = 0, fields: string[] = ['product_name', 'active_ingredient', 'atc_code']): Promise<SearchResponse<Drug>> {
     const searchQuery = `%${query}%`;
+    
+    // Build WHERE clause based on selected fields
+    const whereConditions = [];
+    const bindValues = [];
+    
+    for (const field of fields) {
+      switch (field) {
+        case 'product_name':
+          whereConditions.push('product_name LIKE ?');
+          bindValues.push(searchQuery);
+          break;
+        case 'active_ingredient':
+          whereConditions.push('active_ingredient LIKE ?');
+          bindValues.push(searchQuery);
+          break;
+        case 'atc_code':
+          whereConditions.push('atc_code LIKE ?');
+          bindValues.push(searchQuery);
+          break;
+        case 'barcode':
+          whereConditions.push('barcode LIKE ?');
+          bindValues.push(searchQuery);
+          break;
+        case 'categories':
+          whereConditions.push('categories LIKE ?');
+          bindValues.push(searchQuery);
+          break;
+        case 'description':
+          whereConditions.push('description LIKE ?');
+          bindValues.push(searchQuery);
+          break;
+      }
+    }
+    
+    const whereClause = whereConditions.length > 0 ? whereConditions.join(' OR ') : '1=0';
+    
     const countResult = await this.db
-      .prepare(
-        'SELECT COUNT(*) as total FROM drugs WHERE product_name LIKE ? OR active_ingredient LIKE ? OR atc_code LIKE ?'
-      )
-      .bind(searchQuery, searchQuery, searchQuery)
+      .prepare(`SELECT COUNT(*) as total FROM drugs WHERE ${whereClause}`)
+      .bind(...bindValues)
       .first();
 
     const results = await this.db
-      .prepare(
-        'SELECT * FROM drugs WHERE product_name LIKE ? OR active_ingredient LIKE ? OR atc_code LIKE ? ORDER BY product_name LIMIT ? OFFSET ?'
-      )
-      .bind(searchQuery, searchQuery, searchQuery, limit, offset)
+      .prepare(`SELECT * FROM drugs WHERE ${whereClause} ORDER BY product_name LIMIT ? OFFSET ?`)
+      .bind(...bindValues, limit, offset)
       .all();
 
     const rows = (results.results as unknown as any[]).map((r) => ({
@@ -106,12 +138,38 @@ export class DatabaseService {
     };
   }
 
-  async getAllDrugs(): Promise<Drug[]> {
-    const result = await this.db.prepare('SELECT * FROM drugs ORDER BY product_name').all();
-    return (result.results as unknown as any[]).map((r) => ({
+  async getAllDrugs(limit?: number, offset?: number): Promise<SearchResponse<Drug>> {
+    if (limit === undefined) {
+      // Original behavior for backwards compatibility
+      const result = await this.db.prepare('SELECT * FROM drugs ORDER BY product_name').all();
+      const rows = (result.results as unknown as any[]).map((r) => ({
+        ...r,
+        categories: typeof r.categories === 'string' ? JSON.parse(r.categories || '[]') : r.categories,
+      })) as Drug[];
+      return {
+        results: rows,
+        total: rows.length,
+        has_more: false
+      };
+    }
+    
+    // Paginated version
+    const countResult = await this.db.prepare('SELECT COUNT(*) as total FROM drugs').first();
+    const result = await this.db
+      .prepare('SELECT * FROM drugs ORDER BY product_name LIMIT ? OFFSET ?')
+      .bind(limit, offset || 0)
+      .all();
+      
+    const rows = (result.results as unknown as any[]).map((r) => ({
       ...r,
       categories: typeof r.categories === 'string' ? JSON.parse(r.categories || '[]') : r.categories,
     })) as Drug[];
+
+    return {
+      results: rows,
+      total: (countResult as any)?.total || 0,
+      has_more: (offset || 0) + limit < ((countResult as any)?.total || 0),
+    };
   }
 
   async getDrugById(id: number): Promise<Drug | null> {

@@ -225,16 +225,19 @@ api.get('/drugs', async (c) => {
   if (!c.env?.DB) {
     return c.json({ results: [], total: 0, has_more: false })
   }
+  
   const db = new DatabaseService(c.env.DB)
   const query = c.req.query('q') || ''
+  const limit = parseInt(c.req.query('limit') || '20')
+  const offset = parseInt(c.req.query('offset') || '0')
+  const fields = c.req.query('fields') || 'product_name,active_ingredient,atc_code'
+  
   if (query) {
-    const limit = parseInt(c.req.query('limit') || '20')
-    const offset = parseInt(c.req.query('offset') || '0')
-    const results = await db.searchDrugs(query, limit, offset)
+    const results = await db.searchDrugs(query, limit, offset, fields.split(','))
     return c.json(results)
   } else {
-    const drugs = await db.getAllDrugs()
-    return c.json({ results: drugs, total: drugs.length, has_more: false })
+    const results = await db.getAllDrugs(limit, offset)
+    return c.json(results)
   }
 })
 

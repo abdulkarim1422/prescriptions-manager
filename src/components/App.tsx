@@ -6,6 +6,7 @@ import { SearchBar } from './SearchBar'
 import { PrescriptionCard } from './PrescriptionCard'
 import { CreatePrescriptionModal } from './CreatePrescriptionModal'
 import { ConfigPanel } from './ConfigPanel'
+import { MedicationsView } from './MedicationsView'
 import { PrescriptionTemplate, Disease, Medication, Drug, SearchRequest } from '../types'
 
 export function PrescriptionsApp() {
@@ -295,68 +296,12 @@ export function PrescriptionsApp() {
 
       case 'medications':
         return (
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold">Medications</h2>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setShowCreateDrug(true)}
-                  className="btn-primary flex items-center gap-2"
-                  title="Add a drug manually"
-                >
-                  <Plus size={18} />
-                  Add Drug
-                </button>
-                <button
-                  onClick={() => setShowImportDrugs(true)}
-                  className={`btn-secondary flex items-center gap-2 ${importingDrugs ? 'opacity-60 cursor-not-allowed' : ''}`}
-                  disabled={importingDrugs}
-                  title="Import drugs from JSON (data/tr/drugs.json)"
-                >
-                  <Plus size={18} />
-                  {importingDrugs ? 'Importing…' : 'Import'}
-                </button>
-              </div>
-            </div>
-
-            {importSummary && (
-              <div className="text-sm text-gray-700 bg-gray-100 rounded px-3 py-2">
-                {importSummary}
-              </div>
-            )}
-            
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {drugs.map(drug => (
-                <div key={drug.id} className="card">
-                  <div className="font-medium">{drug.product_name || 'Unknown Product'}</div>
-                  {drug.active_ingredient && (
-                    <div className="text-sm text-gray-600">Active Ingredient: {drug.active_ingredient}</div>
-                  )}
-                  {drug.atc_code && (
-                    <div className="text-sm text-gray-500">ATC: {drug.atc_code}</div>
-                  )}
-                  {drug.barcode && (
-                    <div className="text-xs text-gray-400 mt-1">Barcode: {drug.barcode}</div>
-                  )}
-                  {drug.categories && drug.categories.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {drug.categories.slice(0, 3).map((category, index) => (
-                        <div key={index} className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                          {category}
-                        </div>
-                      ))}
-                      {drug.categories.length > 3 && (
-                        <div className="text-xs text-gray-500">+{drug.categories.length - 3} more</div>
-                      )}
-                    </div>
-                  )}
-                  {drug.description && (
-                    <div className="text-sm text-gray-500 mt-2 line-clamp-2">{drug.description}</div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
+          <MedicationsView
+            onShowCreateDrug={() => setShowCreateDrug(true)}
+            onShowImportDrugs={() => setShowImportDrugs(true)}
+            importingDrugs={importingDrugs}
+            importSummary={importSummary}
+          />
         )
 
       case 'settings':
