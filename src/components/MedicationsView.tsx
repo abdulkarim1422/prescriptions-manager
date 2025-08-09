@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Search, Filter, ChevronDown, Plus, Edit, Trash2 } from 'lucide-react'
 import { Drug } from '../types'
 
@@ -41,27 +42,131 @@ export function MedicationsView({
   importingDrugs, 
   importSummary 
 }: MedicationsViewProps) {
+  const [searchParams, setSearchParams] = useSearchParams()
   const [drugs, setDrugs] = useState<Drug[]>([])
-  const [searchQuery, setSearchQuery] = useState('')
-  const [showFilters, setShowFilters] = useState(false)
   const [deletingDrugId, setDeletingDrugId] = useState<number | null>(null)
   const [expandedCategories, setExpandedCategories] = useState<Set<number>>(new Set())
-  const [filters, setFilters] = useState<SearchFilters>({
-    productName: true,
-    activeIngredient: true,
-    atcCode: true,
-    barcode: false,
-    categories: false,
-    description: false
-  })
+  
+  // Initialize state from URL parameters
+  const getSearchQueryFromUrl = () => searchParams.get('q') || ''
+  const getPageFromUrl = () => parseInt(searchParams.get('page') || '1')
+  const getShowFiltersFromUrl = () => searchParams.get('showFilters') === 'true'
+  const getFiltersFromUrl = (): SearchFilters => {
+    const defaultFilters: SearchFilters = {
+      productName: true,
+      activeIngredient: true,
+      atcCode: true,
+      barcode: false,
+      categories: false,
+      description: false
+    }
+    
+    // Check if any filter parameters exist in URL
+    const hasFilterParams = searchParams.has('productName') || 
+                           searchParams.has('activeIngredient') || 
+                           searchParams.has('atcCode') || 
+                           searchParams.has('barcode') || 
+                           searchParams.has('categories') || 
+                           searchParams.has('description')
+    
+    if (!hasFilterParams) {
+      return defaultFilters
+    }
+    
+    return {
+      productName: searchParams.get('productName') !== 'false',
+      activeIngredient: searchParams.get('activeIngredient') !== 'false',
+      atcCode: searchParams.get('atcCode') !== 'false',
+      barcode: searchParams.get('barcode') === 'true',
+      categories: searchParams.get('categories') === 'true',
+      description: searchParams.get('description') === 'true'
+    }
+  }
+  
+  const [searchQuery, setSearchQuery] = useState(getSearchQueryFromUrl())
+  const [showFilters, setShowFilters] = useState(getShowFiltersFromUrl())
+  const [filters, setFilters] = useState<SearchFilters>(getFiltersFromUrl())
   const [pagination, setPagination] = useState<PaginationState>({
-    currentPage: 1,
+    currentPage: getPageFromUrl(),
     totalCount: 0,
     hasMore: false,
     loading: false
   })
 
   const ITEMS_PER_PAGE = 100
+
+  // Function to update URL parameters
+  const updateUrlParams = (updates: { 
+    q?: string, 
+    page?: number, 
+    filters?: Partial<SearchFilters>,
+    showFilters?: boolean 
+  }) => {
+    const newSearchParams = new URLSearchParams(searchParams)
+    
+    // Update search query
+    if (updates.q !== undefined) {
+      if (updates.q.trim()) {
+        newSearchParams.set('q', updates.q.trim())
+      } else {
+        newSearchParams.delete('q')
+      }
+    }
+    
+    // Update page
+    if (updates.page !== undefined) {
+      if (updates.page > 1) {
+        newSearchParams.set('page', updates.page.toString())
+      } else {
+        newSearchParams.delete('page')
+      }
+    }
+    
+    // Update showFilters
+    if (updates.showFilters !== undefined) {
+      if (updates.showFilters) {
+        newSearchParams.set('showFilters', 'true')
+      } else {
+        newSearchParams.delete('showFilters')
+      }
+    }
+    
+    // Update filters
+    if (updates.filters) {
+      const currentFilters = { ...filters, ...updates.filters }
+      Object.entries(currentFilters).forEach(([key, value]) => {
+        // Only set explicit false for default-true filters, and explicit true for default-false filters
+        const defaultFilters: SearchFilters = {
+          productName: true,
+          activeIngredient: true,
+          atcCode: true,
+          barcode: false,
+          categories: false,
+          description: false
+        }
+        
+        const isDefaultTrue = defaultFilters[key as keyof SearchFilters]
+        
+        if (isDefaultTrue) {
+          // For default-true filters, only set URL param if false
+          if (!value) {
+            newSearchParams.set(key, 'false')
+          } else {
+            newSearchParams.delete(key)
+          }
+        } else {
+          // For default-false filters, only set URL param if true
+          if (value) {
+            newSearchParams.set(key, 'true')
+          } else {
+            newSearchParams.delete(key)
+          }
+        }
+      })
+    }
+    
+    setSearchParams(newSearchParams)
+  }
 
   useEffect(() => {
     loadDrugs(true) // Reset to first page
@@ -79,6 +184,33 @@ export function MedicationsView({
 
     return () => clearTimeout(timeoutId)
   }, [searchQuery, filters])
+
+  // New useEffect to handle URL parameter changes
+  useEffect(() => {
+    const urlQuery = getSearchQueryFromUrl()
+    const urlPage = getPageFromUrl()
+    const urlShowFilters = getShowFiltersFromUrl()
+    const urlFilters = getFiltersFromUrl()
+    
+    // Update local state if URL parameters changed (e.g., from browser back/forward)
+    if (urlQuery !== searchQuery) {
+      setSearchQuery(urlQuery)
+    }
+    if (urlPage !== pagination.currentPage) {
+      setPagination(prev => ({ ...prev, currentPage: urlPage }))
+    }
+    if (urlShowFilters !== showFilters) {
+      setShowFilters(urlShowFilters)
+    }
+    
+    // Compare filters
+    const filtersChanged = Object.keys(filters).some(
+      key => filters[key as keyof SearchFilters] !== urlFilters[key as keyof SearchFilters]
+    )
+    if (filtersChanged) {
+      setFilters(urlFilters)
+    }
+  }, [searchParams])
 
   const loadDrugs = async (reset = false) => {
     const page = reset ? 1 : pagination.currentPage
@@ -163,7 +295,9 @@ export function MedicationsView({
 
   const handleLoadMore = () => {
     if (pagination.hasMore && !pagination.loading) {
-      setPagination(prev => ({ ...prev, currentPage: prev.currentPage + 1 }))
+      const nextPage = pagination.currentPage + 1
+      setPagination(prev => ({ ...prev, currentPage: nextPage }))
+      updateUrlParams({ page: nextPage })
       
       if (searchQuery.trim() !== '') {
         searchDrugs(false)
@@ -174,7 +308,17 @@ export function MedicationsView({
   }
 
   const handleFilterChange = (key: keyof SearchFilters) => {
-    setFilters(prev => ({ ...prev, [key]: !prev[key] }))
+    const newValue = !filters[key]
+    const newFilters = { ...filters, [key]: newValue }
+    setFilters(newFilters)
+    updateUrlParams({ filters: { [key]: newValue }, page: 1 })
+    setPagination(prev => ({ ...prev, currentPage: 1 }))
+  }
+
+  const handleSearchQueryChange = (value: string) => {
+    setSearchQuery(value)
+    updateUrlParams({ q: value, page: 1 })
+    setPagination(prev => ({ ...prev, currentPage: 1 }))
   }
 
   const handleDeleteDrug = async (drugId: number) => {
@@ -219,6 +363,8 @@ export function MedicationsView({
 
   const clearSearch = () => {
     setSearchQuery('')
+    updateUrlParams({ q: '', page: 1 })
+    setPagination(prev => ({ ...prev, currentPage: 1 }))
   }
 
   const activeFiltersCount = Object.values(filters).filter(Boolean).length
@@ -266,7 +412,7 @@ export function MedicationsView({
           <input
             type="text"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => handleSearchQueryChange(e.target.value)}
             className="input-field pl-10 pr-10"
             placeholder="Search medications... (min 2 characters)"
           />
@@ -283,7 +429,11 @@ export function MedicationsView({
         {/* Filter Toggle */}
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setShowFilters(!showFilters)}
+            onClick={() => {
+              const newShowFilters = !showFilters
+              setShowFilters(newShowFilters)
+              updateUrlParams({ showFilters: newShowFilters })
+            }}
             className="btn-secondary flex items-center gap-2"
           >
             <Filter size={16} />
