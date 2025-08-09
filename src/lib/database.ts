@@ -262,6 +262,83 @@ export class DatabaseService {
     return this.upsertDrugByBarcode(item);
   }
 
+  async updateDrug(id: number, updates: Partial<CreateDrugRequest>): Promise<Drug | null> {
+    try {
+      // First check if the drug exists
+      const existing = await this.getDrugById(id);
+      if (!existing) {
+        return null;
+      }
+
+      // Build the update query dynamically based on provided fields
+      const updateFields = [];
+      const values = [];
+
+      if (updates.product_name !== undefined) {
+        updateFields.push('product_name = ?');
+        values.push(updates.product_name);
+      }
+      if (updates.active_ingredient !== undefined) {
+        updateFields.push('active_ingredient = ?');
+        values.push(updates.active_ingredient);
+      }
+      if (updates.atc_code !== undefined) {
+        updateFields.push('atc_code = ?');
+        values.push(updates.atc_code);
+      }
+      if (updates.barcode !== undefined) {
+        updateFields.push('barcode = ?');
+        values.push(updates.barcode);
+      }
+      if (updates.description !== undefined) {
+        updateFields.push('description = ?');
+        values.push(updates.description);
+      }
+      if (updates.categories !== undefined) {
+        updateFields.push('categories = ?');
+        const categoriesJson = Array.isArray(updates.categories)
+          ? JSON.stringify(updates.categories)
+          : typeof updates.categories === 'string'
+            ? JSON.stringify(updates.categories.split(',').map(s => s.trim()).filter(Boolean))
+            : JSON.stringify([]);
+        values.push(categoriesJson);
+      }
+
+      if (updateFields.length === 0) {
+        return existing; // No updates to make
+      }
+
+      updateFields.push('updated_at = CURRENT_TIMESTAMP');
+      values.push(id);
+
+      const query = `UPDATE drugs SET ${updateFields.join(', ')} WHERE id = ? RETURNING *`;
+      const result = await this.db.prepare(query).bind(...values).first();
+
+      if (!result) {
+        return null;
+      }
+
+      const row: any = result;
+      return {
+        ...row,
+        categories: typeof row.categories === 'string' ? JSON.parse(row.categories || '[]') : row.categories,
+      } as Drug;
+    } catch (error) {
+      console.error('Update drug error:', error);
+      throw error;
+    }
+  }
+
+  async deleteDrug(id: number): Promise<boolean> {
+    try {
+      const result = await this.db.prepare('DELETE FROM drugs WHERE id = ?').bind(id).run();
+      return result.success;
+    } catch (error) {
+      console.error('Delete drug error:', error);
+      throw error;
+    }
+  }
+
   // Prescription template operations
   async searchPrescriptions(query: string, limit: number = 20, offset: number = 0): Promise<SearchResponse<PrescriptionTemplate>> {
     const searchQuery = `%${query}%`;

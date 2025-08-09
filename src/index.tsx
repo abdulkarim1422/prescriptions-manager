@@ -299,6 +299,53 @@ api.post('/drugs', async (c) => {
   }
 })
 
+api.put('/drugs/:id', async (c) => {
+  const id = parseInt(c.req.param('id'))
+  const body = await c.req.json() as Partial<CreateDrugRequest>
+  
+  try {
+    if (!c.env?.DB) {
+      // Dev mock: echo back updated data
+      return c.json({ id, ...body, updated_at: new Date().toISOString() }, 200)
+    }
+    
+    const db = new DatabaseService(c.env.DB)
+    const updatedDrug = await db.updateDrug(id, body)
+    
+    if (!updatedDrug) {
+      return c.json({ error: 'Drug not found' }, 404)
+    }
+    
+    return c.json(updatedDrug, 200)
+  } catch (error) {
+    console.error('Update drug error:', error)
+    return c.json({ error: 'Failed to update drug' }, 500)
+  }
+})
+
+api.delete('/drugs/:id', async (c) => {
+  const id = parseInt(c.req.param('id'))
+  
+  try {
+    if (!c.env?.DB) {
+      // Dev mock: just return success
+      return c.json({ success: true }, 200)
+    }
+    
+    const db = new DatabaseService(c.env.DB)
+    const success = await db.deleteDrug(id)
+    
+    if (!success) {
+      return c.json({ error: 'Drug not found' }, 404)
+    }
+    
+    return c.json({ success: true }, 200)
+  } catch (error) {
+    console.error('Delete drug error:', error)
+    return c.json({ error: 'Failed to delete drug' }, 500)
+  }
+})
+
 // Prescriptions endpoints
 api.get('/prescriptions', async (c) => {
   const db = new DatabaseService(c.env.DB)

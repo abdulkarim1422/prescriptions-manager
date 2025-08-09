@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Search, Filter, ChevronDown, Plus } from 'lucide-react'
+import { Search, Filter, ChevronDown, Plus, Edit, Trash2 } from 'lucide-react'
 import { Drug } from '../types'
 
 interface DrugsResponse {
@@ -11,6 +11,8 @@ interface DrugsResponse {
 interface MedicationsViewProps {
   onShowCreateDrug: () => void
   onShowImportDrugs: () => void
+  onEditDrug: (drug: Drug) => void
+  onDeleteDrug: (drugId: number) => void
   importingDrugs: boolean
   importSummary: string | null
 }
@@ -34,12 +36,15 @@ interface PaginationState {
 export function MedicationsView({ 
   onShowCreateDrug, 
   onShowImportDrugs, 
+  onEditDrug,
+  onDeleteDrug,
   importingDrugs, 
   importSummary 
 }: MedicationsViewProps) {
   const [drugs, setDrugs] = useState<Drug[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [showFilters, setShowFilters] = useState(false)
+  const [deletingDrugId, setDeletingDrugId] = useState<number | null>(null)
   const [filters, setFilters] = useState<SearchFilters>({
     productName: true,
     activeIngredient: true,
@@ -169,6 +174,34 @@ export function MedicationsView({
 
   const handleFilterChange = (key: keyof SearchFilters) => {
     setFilters(prev => ({ ...prev, [key]: !prev[key] }))
+  }
+
+  const handleDeleteDrug = async (drugId: number) => {
+    try {
+      setDeletingDrugId(drugId)
+      
+      const response = await fetch(`/api/drugs/${drugId}`, {
+        method: 'DELETE',
+      })
+      
+      if (response.ok) {
+        // Remove from local state
+        setDrugs(prev => prev.filter(drug => drug.id !== drugId))
+        setPagination(prev => ({ 
+          ...prev, 
+          totalCount: Math.max(0, prev.totalCount - 1) 
+        }))
+        onDeleteDrug(drugId)
+      } else {
+        console.error('Failed to delete drug')
+        alert('Failed to delete medication. Please try again.')
+      }
+    } catch (error) {
+      console.error('Delete drug error:', error)
+      alert('Failed to delete medication. Please try again.')
+    } finally {
+      setDeletingDrugId(null)
+    }
   }
 
   const clearSearch = () => {
@@ -320,8 +353,31 @@ export function MedicationsView({
       {/* Results */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {drugs.map(drug => (
-          <div key={drug.id} className="card">
-            <div className="font-medium">{drug.product_name || 'Unknown Product'}</div>
+          <div key={drug.id} className="card relative group">
+            {/* Action buttons */}
+            <div className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button
+                onClick={() => onEditDrug(drug)}
+                className="p-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded transition-colors"
+                title="Edit medication"
+              >
+                <Edit size={14} />
+              </button>
+              <button
+                onClick={() => handleDeleteDrug(drug.id)}
+                disabled={deletingDrugId === drug.id}
+                className="p-1.5 bg-red-500 hover:bg-red-600 text-white rounded transition-colors disabled:opacity-50"
+                title="Delete medication"
+              >
+                {deletingDrugId === drug.id ? (
+                  <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-white"></div>
+                ) : (
+                  <Trash2 size={14} />
+                )}
+              </button>
+            </div>
+
+            <div className="font-medium pr-16">{drug.product_name || 'Unknown Product'}</div>
             {drug.active_ingredient && (
               <div className="text-sm text-gray-600">Active: {drug.active_ingredient}</div>
             )}

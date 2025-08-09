@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Search, Plus, Settings, FileText, Pill, Stethoscope } from 'lucide-react'
 import { CreateDrugModal } from './CreateDrugModal'
+import { EditDrugModal } from './EditDrugModal'
 import { ImportDrugsModal } from './ImportDrugsModal'
 import { SearchBar } from './SearchBar'
 import { PrescriptionCard } from './PrescriptionCard'
@@ -23,6 +24,8 @@ export function PrescriptionsApp() {
   const [importSummary, setImportSummary] = useState<string | null>(null)
   const [showCreateDrug, setShowCreateDrug] = useState(false)
   const [showImportDrugs, setShowImportDrugs] = useState(false)
+  const [showEditDrug, setShowEditDrug] = useState(false)
+  const [editingDrug, setEditingDrug] = useState<Drug | null>(null)
 
   useEffect(() => {
     loadInitialData()
@@ -125,6 +128,29 @@ export function PrescriptionsApp() {
       setImportSummary('Import failed')
     } finally {
       setImportingDrugs(false)
+    }
+  }
+
+  const handleEditDrug = (drug: Drug) => {
+    setEditingDrug(drug)
+    setShowEditDrug(true)
+  }
+
+  const handleDrugUpdated = (updatedDrug: Drug) => {
+    setDrugs(prev => prev.map(drug => drug.id === updatedDrug.id ? updatedDrug : drug))
+    setEditingDrug(null)
+    setShowEditDrug(false)
+    setImportSummary(`Successfully updated "${updatedDrug.product_name}".`)
+    setTimeout(() => setImportSummary(null), 5000)
+  }
+
+  const handleDeleteDrug = (drugId: number) => {
+    // The actual deletion is handled in MedicationsView
+    // This is just for any additional cleanup if needed
+    const deletedDrug = drugs.find(d => d.id === drugId)
+    if (deletedDrug) {
+      setImportSummary(`Successfully deleted "${deletedDrug.product_name}".`)
+      setTimeout(() => setImportSummary(null), 5000)
     }
   }
 
@@ -299,6 +325,8 @@ export function PrescriptionsApp() {
           <MedicationsView
             onShowCreateDrug={() => setShowCreateDrug(true)}
             onShowImportDrugs={() => setShowImportDrugs(true)}
+            onEditDrug={handleEditDrug}
+            onDeleteDrug={handleDeleteDrug}
             importingDrugs={importingDrugs}
             importSummary={importSummary}
           />
@@ -425,6 +453,17 @@ export function PrescriptionsApp() {
           isOpen={showImportDrugs}
           onClose={() => setShowImportDrugs(false)}
           onImport={handleImportDrugs}
+        />
+      )}
+
+      {showEditDrug && (
+        <EditDrugModal
+          drug={editingDrug}
+          onClose={() => {
+            setShowEditDrug(false)
+            setEditingDrug(null)
+          }}
+          onSave={handleDrugUpdated}
         />
       )}
     </div>
