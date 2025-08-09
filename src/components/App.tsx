@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Search, Plus, Settings, FileText, Pill, Stethoscope } from 'lucide-react'
 import { CreateDrugModal } from './CreateDrugModal'
+import { ImportDrugsModal } from './ImportDrugsModal'
 import { SearchBar } from './SearchBar'
 import { PrescriptionCard } from './PrescriptionCard'
 import { CreatePrescriptionModal } from './CreatePrescriptionModal'
@@ -20,14 +21,7 @@ export function PrescriptionsApp() {
   const [importingDrugs, setImportingDrugs] = useState(false)
   const [importSummary, setImportSummary] = useState<string | null>(null)
   const [showCreateDrug, setShowCreateDrug] = useState(false)
-  const [importFields, setImportFields] = useState<{ includeDescription: boolean; includeCategories: boolean; includeActiveIngredient: boolean; includeATC: boolean; includeBarcode: boolean; includeProductName: boolean }>({
-    includeDescription: true,
-    includeCategories: true,
-    includeActiveIngredient: true,
-    includeATC: true,
-    includeBarcode: true,
-    includeProductName: true,
-  })
+  const [showImportDrugs, setShowImportDrugs] = useState(false)
 
   useEffect(() => {
     loadInitialData()
@@ -86,6 +80,50 @@ export function PrescriptionsApp() {
       }
     } catch (error) {
       console.error('Failed to reload drugs:', error)
+    }
+  }
+
+  const handleImportDrugs = async (items: any[], options: any) => {
+    try {
+      setImportingDrugs(true)
+      setImportSummary(null)
+
+      const normalized = items.map((it) => {
+        const categories: string[] = []
+        Object.keys(it || {}).forEach((key) => {
+          if (/^Category_\d+$/i.test(key) && it[key]) {
+            categories.push(String(it[key]).trim())
+          }
+        })
+
+        return {
+          barcode: options.includeBarcode ? (it.barcode || it.Barcode || it.BARCODE || undefined) : undefined,
+          atc_code: options.includeATC ? (it.ATC_code || it.atc_code || it.ATC || undefined) : undefined,
+          active_ingredient: options.includeActiveIngredient ? (it.Active_Ingredient || it.active_ingredient || undefined) : undefined,
+          product_name: options.includeProductName ? (it.Product_Name || it.product_name || undefined) : undefined,
+          categories: options.includeCategories && categories.length > 0 ? categories : undefined,
+          description: options.includeDescription ? (it.Description || it.description || undefined) : undefined,
+        }
+      })
+
+      const res = await fetch('/api/drugs/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: normalized, replace_existing: options.replaceExisting })
+      })
+      
+      if (!res.ok) throw new Error('Import failed')
+      
+      const result = (await res.json()) as { inserted?: number; updated?: number }
+      setImportSummary(`Imported: ${result.inserted ?? 0}, Updated: ${result.updated ?? 0}`)
+      
+      // Reload drugs to show the imported data
+      await reloadDrugs()
+    } catch (err) {
+      console.error('Import drugs failed', err)
+      setImportSummary('Import failed')
+    } finally {
+      setImportingDrugs(false)
     }
   }
 
@@ -269,76 +307,14 @@ export function PrescriptionsApp() {
                   <Plus size={18} />
                   Add Drug
                 </button>
-
-                <div className="flex items-center gap-3 mr-2">
-                  <label className="flex items-center gap-1 text-sm"><input type="checkbox" className="mr-1" checked={importFields.includeProductName} onChange={(e) => setImportFields(v => ({ ...v, includeProductName: e.target.checked }))}/> Product Name</label>
-                  <label className="flex items-center gap-1 text-sm"><input type="checkbox" className="mr-1" checked={importFields.includeActiveIngredient} onChange={(e) => setImportFields(v => ({ ...v, includeActiveIngredient: e.target.checked }))}/> Active Ingredient</label>
-                  <label className="flex items-center gap-1 text-sm"><input type="checkbox" className="mr-1" checked={importFields.includeATC} onChange={(e) => setImportFields(v => ({ ...v, includeATC: e.target.checked }))}/> ATC</label>
-                  <label className="flex items-center gap-1 text-sm"><input type="checkbox" className="mr-1" checked={importFields.includeBarcode} onChange={(e) => setImportFields(v => ({ ...v, includeBarcode: e.target.checked }))}/> Barcode</label>
-                  <label className="flex items-center gap-1 text-sm"><input type="checkbox" className="mr-1" checked={importFields.includeCategories} onChange={(e) => setImportFields(v => ({ ...v, includeCategories: e.target.checked }))}/> Categories</label>
-                  <label className="flex items-center gap-1 text-sm"><input type="checkbox" className="mr-1" checked={importFields.includeDescription} onChange={(e) => setImportFields(v => ({ ...v, includeDescription: e.target.checked }))}/> Description</label>
-                </div>
-                <input
-                  id="import-drugs-file"
-                  type="file"
-                  accept="application/json"
-                  className="hidden"
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0]
-                    if (!file) return
-                    try {
-                      setImportingDrugs(true)
-                      setImportSummary(null)
-                      const text = await file.text()
-                      const raw = JSON.parse(text)
-                      const items = Array.isArray(raw) ? raw : (raw.items || [])
-
-                      const normalized = (items as any[]).map((it) => {
-                        const categories: string[] = []
-                        Object.keys(it || {}).forEach((key) => {
-                          if (/^Category_\d+$/i.test(key) && it[key]) {
-                            categories.push(String(it[key]))
-                          }
-                        })
-                        return {
-                          barcode: importFields.includeBarcode ? (it.barcode || it.Barcode || it.BARCODE || undefined) : undefined,
-                          atc_code: importFields.includeATC ? (it.ATC_code || it.atc_code || it.ATC || undefined) : undefined,
-                          active_ingredient: importFields.includeActiveIngredient ? (it.Active_Ingredient || it.active_ingredient || undefined) : undefined,
-                          product_name: importFields.includeProductName ? (it.Product_Name || it.product_name || undefined) : undefined,
-                          categories: importFields.includeCategories ? categories : undefined,
-                          description: importFields.includeDescription ? (it.Description || it.description || undefined) : undefined,
-                        }
-                      })
-
-                      const res = await fetch('/api/drugs/import', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ items: normalized, replace_existing: false })
-                      })
-                      if (!res.ok) throw new Error('Import failed')
-                      const result = (await res.json()) as { inserted?: number; updated?: number }
-                      setImportSummary(`Imported: ${result.inserted ?? 0}, Updated: ${result.updated ?? 0}`)
-                      // Reload drugs to show the imported data
-                      await reloadDrugs()
-                    } catch (err) {
-                      console.error('Import drugs failed', err)
-                      setImportSummary('Import failed')
-                    } finally {
-                      setImportingDrugs(false)
-                      // reset file input to allow re-upload same file
-                      const input = document.getElementById('import-drugs-file') as HTMLInputElement | null
-                      if (input) input.value = ''
-                    }
-                  }}
-                />
                 <button
-                  onClick={() => document.getElementById('import-drugs-file')?.click()}
+                  onClick={() => setShowImportDrugs(true)}
                   className={`btn-secondary flex items-center gap-2 ${importingDrugs ? 'opacity-60 cursor-not-allowed' : ''}`}
                   disabled={importingDrugs}
                   title="Import drugs from JSON (data/tr/drugs.json)"
                 >
                   <Plus size={18} />
-                  {importingDrugs ? 'Importing…' : 'Import Drugs'}
+                  {importingDrugs ? 'Importing…' : 'Import'}
                 </button>
               </div>
             </div>
@@ -497,6 +473,14 @@ export function PrescriptionsApp() {
           onCreated={async () => {
             await reloadDrugs()
           }}
+        />
+      )}
+
+      {showImportDrugs && (
+        <ImportDrugsModal
+          isOpen={showImportDrugs}
+          onClose={() => setShowImportDrugs(false)}
+          onImport={handleImportDrugs}
         />
       )}
     </div>

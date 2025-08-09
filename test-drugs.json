@@ -1,0 +1,57 @@
+[
+  {
+    "type": "header",
+    "version": "5.1.1",
+    "comment": "Export to JSON plugin for PHPMyAdmin"
+  },
+  {
+    "type": "database",
+    "name": "ilaçlar"
+  },
+  {
+    "type": "table",
+    "name": "ilac",
+    "database": "ilaçlar",
+    "data": [
+      {
+        "ID": "1",
+        "barcode": "8699580090635",
+        "ATC_code": "M01AB08",
+        "Active_Ingredient": "Etodolac",
+        "Product_Name": "DOLARIT 300 MG 10 FILM TABLET",
+        "Category_1": "Kas İskelet Sistemi",
+        "Category_2": "Antienflamatuar ve Antiromatikler",
+        "Category_3": "Non-steroid",
+        "Category_4": "Asetik Asit Türevi İlaçlar",
+        "Category_5": "Asetik Asit Türevi İlaçlar",
+        "Description": "Dolarit 300 Mg Film Kaplı Tablet - Kas iskelet sistemi ağrıları için kullanılan tablet."
+      },
+      {
+        "ID": "2",
+        "barcode": "8699591090341",
+        "ATC_code": "M01AB08",
+        "Active_Ingredient": "Etodolac",
+        "Product_Name": "DOLELAC 500 MG FILM KAPLI TABLET (14 TABLET)",
+        "Category_1": "Kas İskelet Sistemi",
+        "Category_2": "Antienflamatuar ve Antiromatikler",
+        "Category_3": "Non-steroid",
+        "Category_4": "Asetik Asit Türevi İlaçlar",
+        "Category_5": "Asetik Asit Türevi İlaçlar",
+        "Description": "Dolelac 500 Mg Film Kaplı Tablet - Kas iskelet sistemi ağrıları için kullanılan tablet."
+      },
+      {
+        "ID": "3",
+        "barcode": "8699587351661",
+        "ATC_code": "M02AA13",
+        "Active_Ingredient": "İbuprofen",
+        "Product_Name": "DOLGIT %5 KREM (50 G)",
+        "Category_1": "Kas İskelet Sistemi",
+        "Category_2": "Vücut Yüzeyine Uygulanan Kas-Eklem Ağrısı İlaçları",
+        "Category_3": "Eklem ve Kas Ağrıları İçin Topikal İlaçlar",
+        "Category_4": "Topikal Nonsteroid Antienflamatuar",
+        "Category_5": "Topikal Nonsteroid Antienflamatuar",
+        "Description": "Dolgit %5 Krem - Kas ve eklem ağrıları için topikal krem."
+      }
+    ]
+  }
+]
