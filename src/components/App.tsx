@@ -460,7 +460,6 @@ export function PrescriptionsApp() {
 
       {showCreateModal && (
         <CreatePrescriptionModal
-          medications={medications}
           diseases={diseases}
           onSubmit={handleCreatePrescription}
           onClose={() => setShowCreateModal(false)}

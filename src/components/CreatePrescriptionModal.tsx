@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { X, Plus, Trash2 } from 'lucide-react'
-import { Medication, Disease, CreatePrescriptionRequest } from '../types'
+import { Disease, CreatePrescriptionRequest } from '../types'
+import { DrugSearch } from './DrugSearch'
 
 interface CreatePrescriptionModalProps {
-  medications: Medication[]
   diseases: Disease[]
   onSubmit: (data: CreatePrescriptionRequest) => void
   onClose: () => void
@@ -11,17 +11,19 @@ interface CreatePrescriptionModalProps {
 
 interface PrescriptionItem {
   medication_id: number
+  medication_name: string
   dosage: string
   frequency: string
   duration: string
   instructions?: string
 }
 
-export function CreatePrescriptionModal({ medications, diseases, onSubmit, onClose }: CreatePrescriptionModalProps) {
+export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreatePrescriptionModalProps) {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [items, setItems] = useState<PrescriptionItem[]>([{
     medication_id: 0,
+    medication_name: '',
     dosage: '',
     frequency: '',
     duration: '',
@@ -32,6 +34,7 @@ export function CreatePrescriptionModal({ medications, diseases, onSubmit, onClo
   const handleAddItem = () => {
     setItems([...items, {
       medication_id: 0,
+      medication_name: '',
       dosage: '',
       frequency: '',
       duration: '',
@@ -48,6 +51,16 @@ export function CreatePrescriptionModal({ medications, diseases, onSubmit, onClo
   const handleItemChange = (index: number, field: keyof PrescriptionItem, value: string | number) => {
     const updatedItems = [...items]
     updatedItems[index] = { ...updatedItems[index], [field]: value }
+    setItems(updatedItems)
+  }
+
+  const handleDrugSelect = (index: number, drugId: number, drugName: string) => {
+    const updatedItems = [...items]
+    updatedItems[index] = { 
+      ...updatedItems[index], 
+      medication_id: drugId,
+      medication_name: drugName
+    }
     setItems(updatedItems)
   }
 
@@ -163,19 +176,12 @@ export function CreatePrescriptionModal({ medications, diseases, onSubmit, onClo
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Medication *
                       </label>
-                      <select
-                        value={item.medication_id}
-                        onChange={(e) => handleItemChange(index, 'medication_id', parseInt(e.target.value))}
-                        className="input-field"
+                      <DrugSearch
+                        selectedDrugId={item.medication_id}
+                        onDrugSelect={(drugId, drugName) => handleDrugSelect(index, drugId, drugName)}
+                        placeholder="Search for a drug (min 3 characters)..."
                         required
-                      >
-                        <option value={0}>Select medication</option>
-                        {medications.map(med => (
-                          <option key={med.id} value={med.id}>
-                            {med.name} ({med.strength} {med.dosage_form})
-                          </option>
-                        ))}
-                      </select>
+                      />
                     </div>
 
                     <div>
