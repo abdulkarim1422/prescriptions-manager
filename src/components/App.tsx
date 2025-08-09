@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Routes, Route, NavLink, useNavigate } from 'react-router-dom'
 import { Search, Plus, Settings, FileText, Pill, Stethoscope } from 'lucide-react'
 import { CreateDrugModal } from './CreateDrugModal'
 import { EditDrugModal } from './EditDrugModal'
@@ -11,7 +12,6 @@ import { MedicationsView } from './MedicationsView'
 import { PrescriptionTemplate, Disease, Medication, Drug, SearchRequest } from '../types'
 
 export function PrescriptionsApp() {
-  const [currentView, setCurrentView] = useState<'search' | 'prescriptions' | 'diseases' | 'medications' | 'settings'>('search')
   const [searchResults, setSearchResults] = useState<any[]>([])
   const [prescriptions, setPrescriptions] = useState<PrescriptionTemplate[]>([])
   const [diseases, setDiseases] = useState<Disease[]>([])
@@ -225,125 +225,125 @@ export function PrescriptionsApp() {
     }
   }
 
-  const renderContent = () => {
-    switch (currentView) {
-      case 'search':
-        return (
-          <div className="space-y-6">
-            <div className="card">
-              <h2 className="text-xl font-semibold mb-4">Search Prescriptions</h2>
-              <SearchBar 
-                onSearch={handleSearch}
-                loading={loading}
-                placeholder="Search for diseases, medications, or prescriptions..."
-              />
-            </div>
-            
-            {(Array.isArray(searchResults) ? searchResults.length > 0 : Object.keys(searchResults).length > 0) && (
-              <div className="card">
-                <h3 className="text-lg font-medium mb-4">Search Results</h3>
-                <div className="space-y-4">
-                  {Array.isArray(searchResults) ? 
-                    searchResults.map((result, index) => (
-                      <div key={index} className="p-4 border border-gray-200 rounded-lg">
-                        <h4 className="font-medium">{result.name}</h4>
-                        <p className="text-sm text-gray-600">{result.description || result.code}</p>
-                      </div>
-                    )) : 
-                    Object.entries(searchResults).map(([type, results]) => (
-                      <div key={type} className="space-y-2">
-                        <h4 className="font-medium capitalize">{type}</h4>
-                        {Array.isArray(results) && results.map((item, index) => (
-                          <div key={index} className="p-3 bg-gray-50 rounded">
-                            <div className="font-medium">{item.name}</div>
-                            <div className="text-sm text-gray-600">{item.description || item.code}</div>
-                          </div>
-                        ))}
-                      </div>
-                    ))
-                  }
+  // Search View Component
+  const SearchView = () => (
+    <div className="space-y-6">
+      <div className="card">
+        <h2 className="text-xl font-semibold mb-4">Search Prescriptions</h2>
+        <SearchBar 
+          onSearch={handleSearch}
+          loading={loading}
+          placeholder="Search for diseases, medications, or prescriptions..."
+        />
+      </div>
+      
+      {loading && (
+        <div className="text-center py-8">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+          <p className="mt-2 text-gray-600">Loading...</p>
+        </div>
+      )}
+      
+      {(Array.isArray(searchResults) ? searchResults.length > 0 : Object.keys(searchResults).length > 0) && (
+        <div className="card">
+          <h3 className="text-lg font-medium mb-4">Search Results</h3>
+          <div className="space-y-4">
+            {Array.isArray(searchResults) ? 
+              searchResults.map((result, index) => (
+                <div key={index} className="p-4 border border-gray-200 rounded-lg">
+                  <h4 className="font-medium">{result.name}</h4>
+                  <p className="text-sm text-gray-600">{result.description || result.code}</p>
                 </div>
+              )) : 
+              Object.entries(searchResults).map(([type, results]) => (
+                <div key={type} className="space-y-2">
+                  <h4 className="font-medium capitalize">{type}</h4>
+                  {Array.isArray(results) && results.map((item, index) => (
+                    <div key={index} className="p-3 bg-gray-50 rounded">
+                      <div className="font-medium">{item.name}</div>
+                      <div className="text-sm text-gray-600">{item.description || item.code}</div>
+                    </div>
+                  ))}
+                </div>
+              ))
+            }
+          </div>
+        </div>
+      )}
+    </div>
+  )
+
+  // Prescriptions View Component
+  const PrescriptionsView = () => (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Prescription Templates</h2>
+        <button
+          onClick={() => setShowCreateModal(true)}
+          className="btn-primary flex items-center gap-2"
+        >
+          <Plus size={20} />
+          Create New
+        </button>
+      </div>
+      
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {prescriptions.map(prescription => (
+          <PrescriptionCard
+            key={prescription.id}
+            prescription={prescription}
+            onDelete={handleDeletePrescription}
+          />
+        ))}
+      </div>
+    </div>
+  )
+
+  // Diseases View Component
+  const DiseasesView = () => (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Diseases & Conditions</h2>
+      </div>
+      
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {diseases.map(disease => (
+          <div key={disease.id} className="card">
+            <div className="font-medium">{disease.name}</div>
+            <div className="text-sm text-gray-600">ICD-10: {disease.code}</div>
+            {disease.description && (
+              <div className="text-sm text-gray-500 mt-2">{disease.description}</div>
+            )}
+            {disease.category && (
+              <div className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded mt-2 inline-block">
+                {disease.category}
               </div>
             )}
           </div>
-        )
+        ))}
+      </div>
+    </div>
+  )
 
-      case 'prescriptions':
-        return (
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold">Prescription Templates</h2>
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="btn-primary flex items-center gap-2"
-              >
-                <Plus size={20} />
-                Create New
-              </button>
-            </div>
-            
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {prescriptions.map(prescription => (
-                <PrescriptionCard
-                  key={prescription.id}
-                  prescription={prescription}
-                  onDelete={handleDeletePrescription}
-                />
-              ))}
-            </div>
-          </div>
-        )
+  // Medications View Component (wrapper)
+  const MedicationsViewWrapper = () => (
+    <MedicationsView
+      onShowCreateDrug={() => setShowCreateDrug(true)}
+      onShowImportDrugs={() => setShowImportDrugs(true)}
+      onEditDrug={handleEditDrug}
+      onDeleteDrug={handleDeleteDrug}
+      importingDrugs={importingDrugs}
+      importSummary={importSummary}
+    />
+  )
 
-      case 'diseases':
-        return (
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold">Diseases & Conditions</h2>
-            </div>
-            
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {diseases.map(disease => (
-                <div key={disease.id} className="card">
-                  <div className="font-medium">{disease.name}</div>
-                  <div className="text-sm text-gray-600">ICD-10: {disease.code}</div>
-                  {disease.description && (
-                    <div className="text-sm text-gray-500 mt-2">{disease.description}</div>
-                  )}
-                  {disease.category && (
-                    <div className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded mt-2 inline-block">
-                      {disease.category}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )
-
-      case 'medications':
-        return (
-          <MedicationsView
-            onShowCreateDrug={() => setShowCreateDrug(true)}
-            onShowImportDrugs={() => setShowImportDrugs(true)}
-            onEditDrug={handleEditDrug}
-            onDeleteDrug={handleDeleteDrug}
-            importingDrugs={importingDrugs}
-            importSummary={importSummary}
-          />
-        )
-
-      case 'settings':
-        return (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold">Settings</h2>
-            <ConfigPanel config={config} onConfigChange={setConfig} />
-          </div>
-        )
-
-      default:
-        return null
-    }
-  }
+  // Settings View Component
+  const SettingsView = () => (
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold">Settings</h2>
+      <ConfigPanel config={config} onConfigChange={setConfig} />
+    </div>
+  )
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -356,79 +356,89 @@ export function PrescriptionsApp() {
             </div>
             
             <nav className="flex gap-1">
-              <button
-                onClick={() => setCurrentView('search')}
-                className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${
-                  currentView === 'search' 
-                    ? 'bg-primary-100 text-primary-700' 
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                }`}
+              <NavLink
+                to="/"
+                className={({ isActive }) =>
+                  `px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${
+                    isActive 
+                      ? 'bg-primary-100 text-primary-700' 
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  }`
+                }
               >
                 <Search size={18} />
                 Search
-              </button>
+              </NavLink>
               
-              <button
-                onClick={() => setCurrentView('prescriptions')}
-                className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${
-                  currentView === 'prescriptions' 
-                    ? 'bg-primary-100 text-primary-700' 
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                }`}
+              <NavLink
+                to="/prescriptions"
+                className={({ isActive }) =>
+                  `px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${
+                    isActive 
+                      ? 'bg-primary-100 text-primary-700' 
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  }`
+                }
               >
                 <FileText size={18} />
                 Prescriptions
-              </button>
+              </NavLink>
               
-              <button
-                onClick={() => setCurrentView('diseases')}
-                className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${
-                  currentView === 'diseases' 
-                    ? 'bg-primary-100 text-primary-700' 
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                }`}
+              <NavLink
+                to="/diseases"
+                className={({ isActive }) =>
+                  `px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${
+                    isActive 
+                      ? 'bg-primary-100 text-primary-700' 
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  }`
+                }
               >
                 <Stethoscope size={18} />
                 Diseases
-              </button>
+              </NavLink>
               
-              <button
-                onClick={() => setCurrentView('medications')}
-                className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${
-                  currentView === 'medications' 
-                    ? 'bg-primary-100 text-primary-700' 
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                }`}
+              <NavLink
+                to="/medications"
+                className={({ isActive }) =>
+                  `px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${
+                    isActive 
+                      ? 'bg-primary-100 text-primary-700' 
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  }`
+                }
               >
                 <Pill size={18} />
                 Medications
-              </button>
+              </NavLink>
               
-              <button
-                onClick={() => setCurrentView('settings')}
-                className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${
-                  currentView === 'settings' 
-                    ? 'bg-primary-100 text-primary-700' 
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                }`}
+              <NavLink
+                to="/settings"
+                className={({ isActive }) =>
+                  `px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${
+                    isActive 
+                      ? 'bg-primary-100 text-primary-700' 
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  }`
+                }
               >
                 <Settings size={18} />
                 Settings
-              </button>
+              </NavLink>
             </nav>
           </div>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {loading && currentView === 'search' && (
-          <div className="text-center py-8">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-            <p className="mt-2 text-gray-600">Loading...</p>
-          </div>
-        )}
-        
-        {renderContent()}
+        <Routes>
+          <Route path="/" element={<SearchView />} />
+          <Route path="/prescriptions" element={<PrescriptionsView />} />
+          <Route path="/diseases" element={<DiseasesView />} />
+          <Route path="/medications" element={<MedicationsViewWrapper />} />
+          <Route path="/settings" element={<SettingsView />} />
+          <Route path="*" element={<SearchView />} />
+        </Routes>
       </main>
 
       {showCreateModal && (

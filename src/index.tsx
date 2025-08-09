@@ -454,4 +454,28 @@ api.put('/config/:key', async (c) => {
   return c.json({ key, value })
 })
 
+// Client-side routing fallback - serve the main app for all non-API routes
+app.get('*', async (c) => {
+  const path = c.req.path
+  
+  // Skip API routes
+  if (path.startsWith('/api/')) {
+    return c.notFound()
+  }
+  
+  // Serve the client app for all other routes
+  return c.html(`<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Prescriptions Manager</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/client.tsx"></script>
+  </body>
+</html>`)
+})
+
 export default app
