@@ -5,7 +5,7 @@ import { SearchBar } from './SearchBar'
 import { PrescriptionCard } from './PrescriptionCard'
 import { CreatePrescriptionModal } from './CreatePrescriptionModal'
 import { ConfigPanel } from './ConfigPanel'
-import { PrescriptionTemplate, Disease, Medication, SearchRequest } from '../types'
+import { PrescriptionTemplate, Disease, Medication, Drug, SearchRequest } from '../types'
 
 export function PrescriptionsApp() {
   const [currentView, setCurrentView] = useState<'search' | 'prescriptions' | 'diseases' | 'medications' | 'settings'>('search')
@@ -13,6 +13,7 @@ export function PrescriptionsApp() {
   const [prescriptions, setPrescriptions] = useState<PrescriptionTemplate[]>([])
   const [diseases, setDiseases] = useState<Disease[]>([])
   const [medications, setMedications] = useState<Medication[]>([])
+  const [drugs, setDrugs] = useState<Drug[]>([])
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [loading, setLoading] = useState(false)
   const [config, setConfig] = useState({ ai_enabled: true })
@@ -37,10 +38,11 @@ export function PrescriptionsApp() {
       setLoading(true)
       
       // Load all data in parallel
-      const [prescriptionsRes, diseasesRes, medicationsRes, configRes] = await Promise.all([
+      const [prescriptionsRes, diseasesRes, medicationsRes, drugsRes, configRes] = await Promise.all([
         fetch('/api/prescriptions'),
         fetch('/api/diseases'),
         fetch('/api/medications'),
+        fetch('/api/drugs'),
         fetch('/api/config/ai_enabled').catch(() => ({ ok: false }))
       ])
 
@@ -59,6 +61,11 @@ export function PrescriptionsApp() {
         setMedications(Array.isArray(data.results) ? data.results : [])
       }
 
+      if (drugsRes.ok) {
+        const data = await drugsRes.json() as any
+        setDrugs(Array.isArray(data.results) ? data.results : [])
+      }
+
       if (configRes.ok && 'json' in configRes) {
         const configData = await configRes.json() as any
         setConfig(prev => ({ ...prev, ai_enabled: configData.value === 'true' }))
@@ -67,6 +74,18 @@ export function PrescriptionsApp() {
       console.error('Failed to load initial data:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const reloadDrugs = async () => {
+    try {
+      const drugsRes = await fetch('/api/drugs')
+      if (drugsRes.ok) {
+        const data = await drugsRes.json() as any
+        setDrugs(Array.isArray(data.results) ? data.results : [])
+      }
+    } catch (error) {
+      console.error('Failed to reload drugs:', error)
     }
   }
 
@@ -299,6 +318,8 @@ export function PrescriptionsApp() {
                       if (!res.ok) throw new Error('Import failed')
                       const result = (await res.json()) as { inserted?: number; updated?: number }
                       setImportSummary(`Imported: ${result.inserted ?? 0}, Updated: ${result.updated ?? 0}`)
+                      // Reload drugs to show the imported data
+                      await reloadDrugs()
                     } catch (err) {
                       console.error('Import drugs failed', err)
                       setImportSummary('Import failed')
@@ -329,19 +350,32 @@ export function PrescriptionsApp() {
             )}
             
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {medications.map(medication => (
-                <div key={medication.id} className="card">
-                  <div className="font-medium">{medication.name}</div>
-                  {medication.generic_name && (
-                    <div className="text-sm text-gray-600">Generic: {medication.generic_name}</div>
+              {drugs.map(drug => (
+                <div key={drug.id} className="card">
+                  <div className="font-medium">{drug.product_name || 'Unknown Product'}</div>
+                  {drug.active_ingredient && (
+                    <div className="text-sm text-gray-600">Active Ingredient: {drug.active_ingredient}</div>
                   )}
-                  <div className="text-sm text-gray-500 mt-2">
-                    {medication.dosage_form} {medication.strength}
-                  </div>
-                  {medication.category && (
-                    <div className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded mt-2 inline-block">
-                      {medication.category}
+                  {drug.atc_code && (
+                    <div className="text-sm text-gray-500">ATC: {drug.atc_code}</div>
+                  )}
+                  {drug.barcode && (
+                    <div className="text-xs text-gray-400 mt-1">Barcode: {drug.barcode}</div>
+                  )}
+                  {drug.categories && drug.categories.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {drug.categories.slice(0, 3).map((category, index) => (
+                        <div key={index} className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                          {category}
+                        </div>
+                      ))}
+                      {drug.categories.length > 3 && (
+                        <div className="text-xs text-gray-500">+{drug.categories.length - 3} more</div>
+                      )}
                     </div>
+                  )}
+                  {drug.description && (
+                    <div className="text-sm text-gray-500 mt-2 line-clamp-2">{drug.description}</div>
                   )}
                 </div>
               ))}
@@ -460,8 +494,8 @@ export function PrescriptionsApp() {
       {showCreateDrug && (
         <CreateDrugModal
           onClose={() => setShowCreateDrug(false)}
-          onCreated={() => {
-            // Optionally refresh drugs list in future when displayed
+          onCreated={async () => {
+            await reloadDrugs()
           }}
         />
       )}
