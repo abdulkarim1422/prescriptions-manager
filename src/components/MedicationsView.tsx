@@ -45,6 +45,7 @@ export function MedicationsView({
   const [searchQuery, setSearchQuery] = useState('')
   const [showFilters, setShowFilters] = useState(false)
   const [deletingDrugId, setDeletingDrugId] = useState<number | null>(null)
+  const [expandedCategories, setExpandedCategories] = useState<Set<number>>(new Set())
   const [filters, setFilters] = useState<SearchFilters>({
     productName: true,
     activeIngredient: true,
@@ -202,6 +203,18 @@ export function MedicationsView({
     } finally {
       setDeletingDrugId(null)
     }
+  }
+
+  const toggleCategoryExpansion = (drugId: number) => {
+    setExpandedCategories(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(drugId)) {
+        newSet.delete(drugId)
+      } else {
+        newSet.add(drugId)
+      }
+      return newSet
+    })
   }
 
   const clearSearch = () => {
@@ -389,14 +402,39 @@ export function MedicationsView({
             )}
             {drug.categories && drug.categories.length > 0 && (
               <div className="flex flex-wrap gap-1 mt-2">
-                {drug.categories.slice(0, 3).map((category, index) => (
-                  <div key={index} className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                    {category}
-                  </div>
-                ))}
-                {drug.categories.length > 3 && (
-                  <div className="text-xs text-gray-500">+{drug.categories.length - 3} more</div>
-                )}
+                {(() => {
+                  const isExpanded = expandedCategories.has(drug.id)
+                  const displayCategories = isExpanded ? drug.categories : drug.categories.slice(0, 3)
+                  const remainingCount = drug.categories.length - 3
+                  
+                  return (
+                    <>
+                      {displayCategories.map((category, index) => (
+                        <div key={index} className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                          {category}
+                        </div>
+                      ))}
+                      {remainingCount > 0 && !isExpanded && (
+                        <button
+                          onClick={() => toggleCategoryExpansion(drug.id)}
+                          className="text-xs text-blue-600 hover:text-blue-800 hover:underline cursor-pointer px-1"
+                          title={`Click to show ${remainingCount} more categories`}
+                        >
+                          +{remainingCount} more
+                        </button>
+                      )}
+                      {isExpanded && drug.categories.length > 3 && (
+                        <button
+                          onClick={() => toggleCategoryExpansion(drug.id)}
+                          className="text-xs text-blue-600 hover:text-blue-800 hover:underline cursor-pointer px-1"
+                          title="Click to show less"
+                        >
+                          show less
+                        </button>
+                      )}
+                    </>
+                  )
+                })()}
               </div>
             )}
             {drug.description && (
