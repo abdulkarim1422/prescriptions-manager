@@ -31,6 +31,18 @@ export interface Medication {
   updated_at: string;
 }
 
+export interface Drug {
+  id: number;
+  barcode?: string;
+  atc_code?: string;
+  active_ingredient?: string;
+  product_name?: string;
+  categories?: string[]; // Stored as JSON in DB
+  description?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface PrescriptionItem {
   id: number;
   prescription_template_id: number;
@@ -126,6 +138,20 @@ export interface CreateMedicationRequest {
   strength?: string;
   manufacturer?: string;
   category?: string;
+}
+
+export interface CreateDrugRequest {
+  barcode?: string;
+  atc_code?: string;
+  active_ingredient?: string;
+  product_name?: string;
+  categories?: string[] | string; // Accept string for convenience; backend will normalize
+  description?: string;
+}
+
+export interface BulkImportDrugsRequest {
+  items: CreateDrugRequest[];
+  replace_existing?: boolean;
 }
 
 // Frontend component props

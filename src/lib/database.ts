@@ -1,4 +1,4 @@
-import { Env, Disease, PrescriptionTemplate, Medication, PrescriptionItem, DiseasePrescription, SearchResponse } from '../types';
+import { Env, Disease, PrescriptionTemplate, Medication, PrescriptionItem, DiseasePrescription, SearchResponse, Drug, CreateDrugRequest } from '../types';
 
 export class DatabaseService {
   constructor(private db: D1Database) {}
@@ -75,6 +75,133 @@ export class DatabaseService {
       medication.category
     ).first();
     return result as unknown as Medication;
+  }
+
+  // Drugs operations (TR dataset)
+  async searchDrugs(query: string, limit: number = 20, offset: number = 0): Promise<SearchResponse<Drug>> {
+    const searchQuery = `%${query}%`;
+    const countResult = await this.db
+      .prepare(
+        'SELECT COUNT(*) as total FROM drugs WHERE product_name LIKE ? OR active_ingredient LIKE ? OR atc_code LIKE ?'
+      )
+      .bind(searchQuery, searchQuery, searchQuery)
+      .first();
+
+    const results = await this.db
+      .prepare(
+        'SELECT * FROM drugs WHERE product_name LIKE ? OR active_ingredient LIKE ? OR atc_code LIKE ? ORDER BY product_name LIMIT ? OFFSET ?'
+      )
+      .bind(searchQuery, searchQuery, searchQuery, limit, offset)
+      .all();
+
+    const rows = (results.results as unknown as any[]).map((r) => ({
+      ...r,
+      categories: typeof r.categories === 'string' ? JSON.parse(r.categories || '[]') : r.categories,
+    })) as Drug[]
+
+    return {
+      results: rows,
+      total: (countResult as any)?.total || 0,
+      has_more: offset + limit < ((countResult as any)?.total || 0),
+    };
+  }
+
+  async getAllDrugs(): Promise<Drug[]> {
+    const result = await this.db.prepare('SELECT * FROM drugs ORDER BY product_name').all();
+    return (result.results as unknown as any[]).map((r) => ({
+      ...r,
+      categories: typeof r.categories === 'string' ? JSON.parse(r.categories || '[]') : r.categories,
+    })) as Drug[];
+  }
+
+  async getDrugById(id: number): Promise<Drug | null> {
+    const result = await this.db.prepare('SELECT * FROM drugs WHERE id = ?').bind(id).first();
+    if (!result) return null;
+    const row: any = result;
+    return {
+      ...row,
+      categories: typeof row.categories === 'string' ? JSON.parse(row.categories || '[]') : row.categories,
+    } as Drug;
+  }
+
+  async upsertDrugByBarcode(input: CreateDrugRequest): Promise<Drug> {
+    // Normalize categories to JSON string
+    const categoriesProvided = input.categories !== undefined;
+    const categoriesJson = categoriesProvided
+      ? (Array.isArray(input.categories)
+          ? JSON.stringify(input.categories)
+          : input.categories
+          ? JSON.stringify(String(input.categories).split(',').map((s) => s.trim()).filter(Boolean))
+          : JSON.stringify([]))
+      : undefined;
+
+    if (input.barcode) {
+      const existing = await this.db.prepare('SELECT * FROM drugs WHERE barcode = ?').bind(input.barcode).first();
+      if (existing) {
+        const updated = await this.db
+          .prepare(
+            `UPDATE drugs SET 
+              atc_code = COALESCE(?, atc_code), 
+              active_ingredient = COALESCE(?, active_ingredient), 
+              product_name = COALESCE(?, product_name), 
+              categories = COALESCE(${categoriesProvided ? '?' : 'categories'}, categories), 
+              description = COALESCE(?, description), 
+              updated_at = CURRENT_TIMESTAMP 
+             WHERE barcode = ? RETURNING *`
+          )
+          .bind(
+            input.atc_code ?? null,
+            input.active_ingredient ?? null,
+            input.product_name ?? null,
+            ...(categoriesProvided ? [categoriesJson ?? null] as any[] : []),
+            input.description ?? null,
+            input.barcode
+          )
+          .first();
+        return updated as unknown as Drug;
+      }
+    }
+
+    const inserted = await this.db
+      .prepare(
+        'INSERT INTO drugs (barcode, atc_code, active_ingredient, product_name, categories, description) VALUES (?, ?, ?, ?, ?, ?) RETURNING *'
+      )
+      .bind(
+        input.barcode ?? null,
+        input.atc_code ?? null,
+        input.active_ingredient ?? null,
+        input.product_name ?? null,
+        categoriesJson ?? JSON.stringify([]),
+        input.description ?? null
+      )
+      .first();
+
+    return inserted as unknown as Drug;
+  }
+
+  async bulkImportDrugs(items: CreateDrugRequest[], replaceExisting: boolean = false): Promise<{ inserted: number; updated: number }>{
+    let inserted = 0;
+    let updated = 0;
+    for (const item of items) {
+      if (replaceExisting && item.barcode) {
+        await this.db.prepare('DELETE FROM drugs WHERE barcode = ?').bind(item.barcode).run();
+      }
+      const existing = item.barcode
+        ? await this.db.prepare('SELECT id FROM drugs WHERE barcode = ?').bind(item.barcode).first()
+        : null;
+      if (existing) {
+        await this.upsertDrugByBarcode(item);
+        updated += 1;
+      } else {
+        await this.upsertDrugByBarcode(item);
+        inserted += 1;
+      }
+    }
+    return { inserted, updated };
+  }
+
+  async createDrug(item: CreateDrugRequest): Promise<Drug> {
+    return this.upsertDrugByBarcode(item);
   }
 
   // Prescription template operations

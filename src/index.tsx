@@ -2,7 +2,7 @@ import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { DatabaseService } from './lib/database'
 import { AIService, createAIService } from './lib/ai'
-import { Env, SearchRequest, CreatePrescriptionRequest, CreateDiseaseRequest, CreateMedicationRequest } from './types'
+import { Env, SearchRequest, CreatePrescriptionRequest, CreateDiseaseRequest, CreateMedicationRequest, BulkImportDrugsRequest, CreateDrugRequest } from './types'
 
 const app = new Hono<{ Bindings: Env }>()
 
@@ -217,6 +217,82 @@ api.post('/medications', async (c) => {
   } catch (error) {
     console.error('Create medication error:', error)
     return c.json({ error: 'Failed to create medication' }, 500)
+  }
+})
+
+// Drugs endpoints (TR dataset)
+api.get('/drugs', async (c) => {
+  if (!c.env?.DB) {
+    return c.json({ results: [], total: 0, has_more: false })
+  }
+  const db = new DatabaseService(c.env.DB)
+  const query = c.req.query('q') || ''
+  if (query) {
+    const limit = parseInt(c.req.query('limit') || '20')
+    const offset = parseInt(c.req.query('offset') || '0')
+    const results = await db.searchDrugs(query, limit, offset)
+    return c.json(results)
+  } else {
+    const drugs = await db.getAllDrugs()
+    return c.json({ results: drugs, total: drugs.length, has_more: false })
+  }
+})
+
+api.get('/drugs/:id', async (c) => {
+  if (!c.env?.DB) {
+    return c.json({ error: 'Drug not found (dev mock)' }, 404)
+  }
+  const db = new DatabaseService(c.env.DB)
+  const id = parseInt(c.req.param('id'))
+  const drug = await db.getDrugById(id)
+  if (!drug) {
+    return c.json({ error: 'Drug not found' }, 404)
+  }
+  return c.json(drug)
+})
+
+api.post('/drugs/import', async (c) => {
+  let items: BulkImportDrugsRequest['items'] = []
+  let replace_existing = false
+  try {
+    // Parse JSON payload safely
+    const raw = await c.req.text()
+    if (raw) {
+      const parsed = JSON.parse(raw) as BulkImportDrugsRequest
+      items = Array.isArray(parsed?.items) ? parsed.items : (Array.isArray((parsed as any)) ? (parsed as any) : [])
+      replace_existing = Boolean((parsed as any)?.replace_existing)
+    }
+  } catch (parseError) {
+    console.warn('Import payload parse error; continuing with empty items')
+  }
+
+  if (!c.env?.DB) {
+    return c.json({ inserted: items.length, updated: 0 }, 201)
+  }
+
+  try {
+    const db = new DatabaseService(c.env.DB)
+    const result = await db.bulkImportDrugs(items, replace_existing)
+    return c.json(result, 201)
+  } catch (error) {
+    console.error('Bulk import drugs error:', error)
+    return c.json({ error: 'Failed to import drugs' }, 500)
+  }
+})
+
+api.post('/drugs', async (c) => {
+  const body = await c.req.json() as CreateDrugRequest
+  try {
+    if (!c.env?.DB) {
+      // Dev mock: echo back with a fake id
+      return c.json({ id: Math.floor(Math.random()*1e6), ...body, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }, 201)
+    }
+    const db = new DatabaseService(c.env.DB)
+    const drug = await db.createDrug(body)
+    return c.json(drug, 201)
+  } catch (error) {
+    console.error('Create drug error:', error)
+    return c.json({ error: 'Failed to create drug' }, 500)
   }
 })
 
