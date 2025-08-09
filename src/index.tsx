@@ -228,11 +228,16 @@ api.get('/drugs', async (c) => {
   
   const db = new DatabaseService(c.env.DB)
   const query = c.req.query('q') || ''
+  const category = c.req.query('category') || ''
   const limit = parseInt(c.req.query('limit') || '20')
   const offset = parseInt(c.req.query('offset') || '0')
   const fields = c.req.query('fields') || 'product_name,active_ingredient,atc_code'
   
-  if (query) {
+  // Priority: category filter > search query > all drugs
+  if (category) {
+    const results = await db.searchDrugsByCategory(category, limit, offset)
+    return c.json(results)
+  } else if (query) {
     const results = await db.searchDrugs(query, limit, offset, fields.split(','))
     return c.json(results)
   } else {

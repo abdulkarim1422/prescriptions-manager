@@ -86,6 +86,7 @@ export function MedicationsView({
   const [searchQuery, setSearchQuery] = useState(getSearchQueryFromUrl())
   const [showFilters, setShowFilters] = useState(getShowFiltersFromUrl())
   const [filters, setFilters] = useState<SearchFilters>(getFiltersFromUrl())
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(searchParams.get('category') || null)
   const [pagination, setPagination] = useState<PaginationState>({
     currentPage: getPageFromUrl(),
     totalCount: 0,
@@ -100,7 +101,8 @@ export function MedicationsView({
     q?: string, 
     page?: number, 
     filters?: Partial<SearchFilters>,
-    showFilters?: boolean 
+    showFilters?: boolean,
+    category?: string | null
   }) => {
     const newSearchParams = new URLSearchParams(searchParams)
     
@@ -128,6 +130,15 @@ export function MedicationsView({
         newSearchParams.set('showFilters', 'true')
       } else {
         newSearchParams.delete('showFilters')
+      }
+    }
+
+    // Update category filter
+    if (updates.category !== undefined) {
+      if (updates.category) {
+        newSearchParams.set('category', updates.category)
+      } else {
+        newSearchParams.delete('category')
       }
     }
     
@@ -185,6 +196,17 @@ export function MedicationsView({
     return () => clearTimeout(timeoutId)
   }, [searchQuery, filters])
 
+  // Watch for selectedCategory changes
+  useEffect(() => {
+    if (selectedCategory) {
+      searchDrugs(true)
+    } else if (searchQuery.trim() !== '') {
+      searchDrugs(true)
+    } else {
+      loadDrugs(true)
+    }
+  }, [selectedCategory])
+
   // New useEffect to handle URL parameter changes
   useEffect(() => {
     const urlQuery = getSearchQueryFromUrl()
@@ -219,7 +241,14 @@ export function MedicationsView({
     try {
       setPagination(prev => ({ ...prev, loading: true }))
       
-      const response = await fetch(`/api/drugs?limit=${ITEMS_PER_PAGE}&offset=${offset}`)
+      let url = `/api/drugs?limit=${ITEMS_PER_PAGE}&offset=${offset}`
+      
+      // Add category filter if selected
+      if (selectedCategory) {
+        url += `&category=${encodeURIComponent(selectedCategory)}`
+      }
+      
+      const response = await fetch(url)
       if (response.ok) {
         const data = await response.json() as DrugsResponse
         
@@ -243,7 +272,7 @@ export function MedicationsView({
   }
 
   const searchDrugs = async (reset = true) => {
-    if (searchQuery.trim().length < 2) {
+    if (searchQuery.trim().length < 2 && !selectedCategory) {
       loadDrugs(true)
       return
     }
@@ -264,11 +293,20 @@ export function MedicationsView({
       if (filters.description) searchFields.push('description')
 
       const queryParams = new URLSearchParams({
-        q: searchQuery.trim(),
         limit: ITEMS_PER_PAGE.toString(),
         offset: offset.toString(),
         fields: searchFields.join(',')
       })
+
+      // Add search query if present
+      if (searchQuery.trim()) {
+        queryParams.set('q', searchQuery.trim())
+      }
+
+      // Add category filter if selected
+      if (selectedCategory) {
+        queryParams.set('category', selectedCategory)
+      }
 
       const response = await fetch(`/api/drugs?${queryParams}`)
       if (response.ok) {
@@ -361,9 +399,17 @@ export function MedicationsView({
     })
   }
 
+  const handleCategoryClick = (category: string) => {
+    const newCategory = selectedCategory === category ? null : category
+    setSelectedCategory(newCategory)
+    updateUrlParams({ category: newCategory, page: 1 })
+    setPagination(prev => ({ ...prev, currentPage: 1 }))
+  }
+
   const clearSearch = () => {
     setSearchQuery('')
-    updateUrlParams({ q: '', page: 1 })
+    setSelectedCategory(null)
+    updateUrlParams({ q: '', category: null, page: 1 })
     setPagination(prev => ({ ...prev, currentPage: 1 }))
   }
 
@@ -513,6 +559,24 @@ export function MedicationsView({
         )}
       </div>
 
+      {/* Selected Category Filter */}
+      {selectedCategory && (
+        <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+          <span className="text-sm text-blue-800">
+            Filtering by category:
+          </span>
+          <span className="text-sm font-medium text-blue-900 bg-blue-200 px-2 py-1 rounded">
+            {selectedCategory}
+          </span>
+          <button
+            onClick={() => handleCategoryClick(selectedCategory)}
+            className="text-blue-600 hover:text-blue-800 text-sm underline ml-auto"
+          >
+            Clear filter
+          </button>
+        </div>
+      )}
+
       {/* Results */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {drugs.map(drug => (
@@ -560,9 +624,18 @@ export function MedicationsView({
                   return (
                     <>
                       {displayCategories.map((category, index) => (
-                        <div key={index} className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                        <button
+                          key={index}
+                          onClick={() => handleCategoryClick(category)}
+                          className={`text-xs px-2 py-1 rounded transition-colors cursor-pointer ${
+                            selectedCategory === category
+                              ? 'bg-blue-600 text-white ring-2 ring-blue-300'
+                              : 'bg-blue-100 text-blue-800 hover:bg-blue-200 hover:text-blue-900'
+                          }`}
+                          title={`Filter by category: ${category}`}
+                        >
                           {category}
-                        </div>
+                        </button>
                       ))}
                       {remainingCount > 0 && !isExpanded && (
                         <button

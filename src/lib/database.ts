@@ -172,6 +172,36 @@ export class DatabaseService {
     };
   }
 
+  async searchDrugsByCategory(category: string, limit: number = 20, offset: number = 0): Promise<SearchResponse<Drug>> {
+    try {
+      const categoryPattern = `%"${category}"%`;
+      
+      const countResult = await this.db
+        .prepare('SELECT COUNT(*) as total FROM drugs WHERE categories LIKE ?')
+        .bind(categoryPattern)
+        .first();
+
+      const results = await this.db
+        .prepare('SELECT * FROM drugs WHERE categories LIKE ? ORDER BY product_name LIMIT ? OFFSET ?')
+        .bind(categoryPattern, limit, offset)
+        .all();
+
+      const rows = (results.results as unknown as any[]).map((r) => ({
+        ...r,
+        categories: typeof r.categories === 'string' ? JSON.parse(r.categories || '[]') : r.categories,
+      })) as Drug[]
+
+      return {
+        results: rows,
+        total: (countResult as any)?.total || 0,
+        has_more: offset + limit < ((countResult as any)?.total || 0),
+      };
+    } catch (error) {
+      console.error('Search drugs by category error:', error);
+      throw error;
+    }
+  }
+
   async getDrugById(id: number): Promise<Drug | null> {
     const result = await this.db.prepare('SELECT * FROM drugs WHERE id = ?').bind(id).first();
     if (!result) return null;
