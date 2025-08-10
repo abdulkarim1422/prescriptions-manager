@@ -231,20 +231,22 @@ api.post('/diseases/import', async (c) => {
     const body = await c.req.json()
     
     let diseases = []
+    let replaceExisting = false
     
     // Handle different input formats
-    if (Array.isArray(body)) {
-      diseases = body
-    } else if (body.diseases && Array.isArray(body.diseases)) {
+    if (body.diseases && Array.isArray(body.diseases)) {
       diseases = body.diseases
+      replaceExisting = body.replaceExisting || false
     } else if (Array.isArray(body)) {
+      diseases = body
+    } else if (Array.isArray(body) && body.length > 0 && body[0].children !== undefined) {
       // Handle hierarchical structure like diagnosis_codes.json
       diseases = flattenDiagnosisHierarchy(body)
     } else {
-      return c.json({ error: 'Invalid data format' }, 400)
+      return c.json({ error: 'Invalid data format. Expected { diseases: [...] } or array' }, 400)
     }
 
-    const result = await db.bulkImportDiseases(diseases, body.replaceExisting || false)
+    const result = await db.bulkImportDiseases(diseases, replaceExisting)
     return c.json(result)
   } catch (error) {
     console.error('Import diseases error:', error)

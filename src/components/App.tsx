@@ -189,26 +189,16 @@ export function PrescriptionsApp() {
     setEditingDisease(null)
   }
 
-  const handleImportDiseases = async (diseases: any[]) => {
-    setImportingDiseases(true)
-    try {
-      const response = await fetch('/api/diseases/import', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ diseases })
-      })
-
-      if (response.ok) {
-        const result = await response.json() as any
-        setDiseasesImportSummary(`Successfully imported ${result.imported || 0} diseases. ${result.errors || 0} errors.`)
-        setShowImportDiseases(false)
-      }
-    } catch (error) {
-      console.error('Failed to import diseases:', error)
-      setDiseasesImportSummary('Import failed. Please try again.')
-    } finally {
-      setImportingDiseases(false)
+  const handleImportDiseases = async (diseases: any[], options: any) => {
+    // The ImportDiseasesModal now handles the actual import
+    // This function just receives the final summary
+    if (options && typeof options.imported === 'number') {
+      setDiseasesImportSummary(
+        `Successfully imported ${options.imported} diseases. ${options.errors || 0} errors.`
+      )
+      setTimeout(() => setDiseasesImportSummary(null), 10000) // Clear after 10 seconds
     }
+    setShowImportDiseases(false)
   }
 
   const handleSearch = async (query: string, type: SearchRequest['type']) => {

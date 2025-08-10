@@ -47,6 +47,17 @@ interface ImportOptions {
   replaceExisting: boolean
 }
 
+interface ImportProgress {
+  total: number
+  processed: number
+  imported: number
+  errors: number
+  currentBatch: number
+  totalBatches: number
+  startTime: number
+  estimatedTimeRemaining?: number
+}
+
 interface ImportDiseasesModalProps {
   isOpen: boolean
   onClose: () => void
@@ -65,6 +76,9 @@ export function ImportDiseasesModal({ isOpen, onClose, onImport }: ImportDisease
   })
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [isImporting, setIsImporting] = useState(false)
+  const [importProgress, setImportProgress] = useState<ImportProgress | null>(null)
+  const [importComplete, setImportComplete] = useState(false)
 
   if (!isOpen) return null
 
@@ -103,20 +117,128 @@ export function ImportDiseasesModal({ isOpen, onClose, onImport }: ImportDisease
     }
   }
 
-  const handleImport = () => {
+  const handleImport = async () => {
     if (jsonData.length === 0) {
       setError('No data to import')
       return
     }
-    onImport(jsonData, options)
-    handleClose()
+
+    setIsImporting(true)
+    setImportComplete(false)
+    setError(null)
+    
+    const BATCH_SIZE = 100 // Process in batches of 100
+    const totalItems = jsonData.length
+    const totalBatches = Math.ceil(totalItems / BATCH_SIZE)
+    const startTime = Date.now()
+
+    setImportProgress({
+      total: totalItems,
+      processed: 0,
+      imported: 0,
+      errors: 0,
+      currentBatch: 0,
+      totalBatches,
+      startTime
+    })
+
+    try {
+      let totalImported = 0
+      let totalErrors = 0
+
+      for (let i = 0; i < totalBatches; i++) {
+        const batchStart = i * BATCH_SIZE
+        const batchEnd = Math.min(batchStart + BATCH_SIZE, totalItems)
+        const batch = jsonData.slice(batchStart, batchEnd)
+        
+        // Update progress before processing batch
+        const elapsed = Date.now() - startTime
+        const avgTimePerBatch = i > 0 ? elapsed / i : 0
+        const remainingBatches = totalBatches - i
+        const estimatedTimeRemaining = avgTimePerBatch * remainingBatches
+
+        setImportProgress(prev => prev ? {
+          ...prev,
+          currentBatch: i + 1,
+          processed: batchStart,
+          estimatedTimeRemaining: estimatedTimeRemaining
+        } : null)
+
+        // Send batch to server
+        try {
+          const response = await fetch('/api/diseases/import', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              diseases: batch,
+              replaceExisting: options.replaceExisting
+            })
+          })
+
+          if (response.ok) {
+            const result = await response.json() as { imported: number; errors: number }
+            totalImported += result.imported || 0
+            totalErrors += result.errors || 0
+            
+            // Update progress after processing batch
+            setImportProgress(prev => prev ? {
+              ...prev,
+              processed: batchEnd,
+              imported: totalImported,
+              errors: totalErrors
+            } : null)
+          } else {
+            throw new Error(`Server error: ${response.status}`)
+          }
+        } catch (batchError) {
+          console.error('Batch import error:', batchError)
+          totalErrors += batch.length
+          
+          setImportProgress(prev => prev ? {
+            ...prev,
+            processed: batchEnd,
+            errors: totalErrors
+          } : null)
+        }
+
+        // Small delay to prevent overwhelming the server
+        if (i < totalBatches - 1) {
+          await new Promise(resolve => setTimeout(resolve, 50))
+        }
+      }
+
+      setImportComplete(true)
+      
+      // Call the parent onImport callback with summary
+      onImport([], {
+        ...options,
+        // Pass additional info in options for parent component
+        imported: totalImported,
+        errors: totalErrors,
+        total: totalItems
+      } as any)
+
+    } catch (error) {
+      console.error('Import error:', error)
+      setError(error instanceof Error ? error.message : 'Import failed')
+    } finally {
+      setIsImporting(false)
+    }
   }
 
   const handleClose = () => {
+    if (isImporting && !importComplete) {
+      const confirmClose = window.confirm('Import is still in progress. Are you sure you want to close?')
+      if (!confirmClose) return
+    }
+    
     setFile(null)
     setJsonData([])
     setError(null)
     setIsLoading(false)
+    setIsImporting(false)
+    setImportProgress(null)
+    setImportComplete(false)
     onClose()
   }
 
@@ -176,8 +298,78 @@ export function ImportDiseasesModal({ isOpen, onClose, onImport }: ImportDisease
             </div>
           )}
 
+          {/* Import Progress */}
+          {isImporting && importProgress && (
+            <div className="space-y-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-center justify-between">
+                <h3 className="font-medium text-blue-900">Import Progress</h3>
+                <span className="text-sm text-blue-700">
+                  Batch {importProgress.currentBatch} of {importProgress.totalBatches}
+                </span>
+              </div>
+              
+              {/* Progress Bar */}
+              <div className="w-full bg-blue-100 rounded-full h-2">
+                <div 
+                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                  style={{ 
+                    width: `${(importProgress.processed / importProgress.total) * 100}%` 
+                  }}
+                ></div>
+              </div>
+              
+              {/* Progress Stats */}
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-blue-700 font-medium">Processed:</span>
+                  <span className="ml-1 text-blue-900">
+                    {importProgress.processed.toLocaleString()} / {importProgress.total.toLocaleString()}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-green-700 font-medium">Imported:</span>
+                  <span className="ml-1 text-green-900">
+                    {importProgress.imported.toLocaleString()}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-red-700 font-medium">Errors:</span>
+                  <span className="ml-1 text-red-900">
+                    {importProgress.errors.toLocaleString()}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-blue-700 font-medium">Progress:</span>
+                  <span className="ml-1 text-blue-900">
+                    {Math.round((importProgress.processed / importProgress.total) * 100)}%
+                  </span>
+                </div>
+              </div>
+              
+              {/* Time Estimation */}
+              {importProgress.estimatedTimeRemaining && importProgress.estimatedTimeRemaining > 0 && (
+                <div className="text-sm text-blue-700">
+                  <span className="font-medium">Estimated time remaining:</span>
+                  <span className="ml-1">
+                    {Math.round(importProgress.estimatedTimeRemaining / 1000)}s
+                  </span>
+                </div>
+              )}
+              
+              {/* Completion Message */}
+              {importComplete && (
+                <div className="p-3 bg-green-100 border border-green-200 rounded text-sm text-green-800">
+                  <span className="font-medium">Import completed!</span> 
+                  <span className="ml-1">
+                    Successfully imported {importProgress.imported} diseases with {importProgress.errors} errors.
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Data Preview */}
-          {jsonData.length > 0 && (
+          {jsonData.length > 0 && !isImporting && (
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <FileText className="h-5 w-5 text-green-500" />
@@ -197,7 +389,7 @@ export function ImportDiseasesModal({ isOpen, onClose, onImport }: ImportDisease
           )}
 
           {/* Import Options */}
-          {jsonData.length > 0 && (
+          {jsonData.length > 0 && !isImporting && (
             <div className="space-y-3">
               <h3 className="font-medium text-gray-700">Import Options</h3>
               
@@ -255,17 +447,42 @@ export function ImportDiseasesModal({ isOpen, onClose, onImport }: ImportDisease
         <div className="flex items-center justify-end gap-3 p-6 border-t bg-gray-50">
           <button
             onClick={handleClose}
-            className="btn-secondary"
+            disabled={isImporting && !importComplete}
+            className={`btn-secondary ${isImporting && !importComplete ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
-            Cancel
+            {isImporting && !importComplete ? 'Importing...' : 'Cancel'}
           </button>
-          <button
-            onClick={handleImport}
-            disabled={jsonData.length === 0}
-            className="btn-primary"
-          >
-            Import {jsonData.length > 0 ? `${jsonData.length} diseases` : ''}
-          </button>
+          
+          {!isImporting && (
+            <button
+              onClick={handleImport}
+              disabled={jsonData.length === 0}
+              className="btn-primary"
+            >
+              Import {jsonData.length > 0 ? `${jsonData.length.toLocaleString()} diseases` : ''}
+            </button>
+          )}
+          
+          {isImporting && (
+            <button
+              disabled
+              className="btn-primary opacity-50 cursor-not-allowed"
+            >
+              <div className="flex items-center gap-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                Importing...
+              </div>
+            </button>
+          )}
+          
+          {importComplete && (
+            <button
+              onClick={handleClose}
+              className="btn-primary"
+            >
+              Close
+            </button>
+          )}
         </div>
       </div>
     </div>
