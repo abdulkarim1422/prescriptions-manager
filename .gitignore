@@ -37,6 +37,7 @@ lerna-debug.log*
 PRD.md
 *.txt
 data
+TODO.md
 
 # cloudflare
 wrangler.jsonc
