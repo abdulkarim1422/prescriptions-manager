@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Search, Filter, ChevronDown, Plus, Edit, Trash2 } from 'lucide-react'
+import { Search, Filter, ChevronDown, Plus, Edit, Trash2, Info } from 'lucide-react'
 import { Drug } from '../types'
+import { DrugInfoModal } from './DrugInfoModal'
 
 interface DrugsResponse {
   results: Drug[]
@@ -46,6 +47,8 @@ export function MedicationsView({
   const [drugs, setDrugs] = useState<Drug[]>([])
   const [deletingDrugId, setDeletingDrugId] = useState<number | null>(null)
   const [expandedCategories, setExpandedCategories] = useState<Set<number>>(new Set())
+  const [showDrugInfo, setShowDrugInfo] = useState(false)
+  const [selectedDrug, setSelectedDrug] = useState<Drug | null>(null)
   
   // Initialize state from URL parameters
   const getSearchQueryFromUrl = () => searchParams.get('q') || ''
@@ -387,6 +390,16 @@ export function MedicationsView({
     }
   }
 
+  const handleShowDrugInfo = (drug: Drug) => {
+    setSelectedDrug(drug)
+    setShowDrugInfo(true)
+  }
+
+  const handleCloseDrugInfo = () => {
+    setShowDrugInfo(false)
+    setSelectedDrug(null)
+  }
+
   const toggleCategoryExpansion = (drugId: number) => {
     setExpandedCategories(prev => {
       const newSet = new Set(prev)
@@ -584,6 +597,13 @@ export function MedicationsView({
             {/* Action buttons */}
             <div className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
               <button
+                onClick={() => handleShowDrugInfo(drug)}
+                className="p-1.5 bg-gray-500 hover:bg-gray-600 text-white rounded transition-colors"
+                title="View drug information"
+              >
+                <Info size={14} />
+              </button>
+              <button
                 onClick={() => onEditDrug(drug)}
                 className="p-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded transition-colors"
                 title="Edit medication"
@@ -604,7 +624,7 @@ export function MedicationsView({
               </button>
             </div>
 
-            <div className="font-medium pr-16">{drug.product_name || 'Unknown Product'}</div>
+            <div className="font-medium pr-20">{drug.product_name || 'Unknown Product'}</div>
             {drug.active_ingredient && (
               <div className="text-sm text-gray-600">Active: {drug.active_ingredient}</div>
             )}
@@ -701,6 +721,14 @@ export function MedicationsView({
             </button>
           )}
         </div>
+      )}
+
+      {/* Drug Info Modal */}
+      {showDrugInfo && selectedDrug && (
+        <DrugInfoModal
+          drug={selectedDrug}
+          onClose={handleCloseDrugInfo}
+        />
       )}
     </div>
   )

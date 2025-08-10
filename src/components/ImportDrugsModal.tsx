@@ -97,6 +97,56 @@ export function ImportDrugsModal({ isOpen, onClose, onImport }: ImportDrugsModal
     }
   }
 
+  const mapDrugData = (rawItem: any) => {
+    // Handle different data formats dynamically
+    const mapped: any = {}
+    
+    // Map product name
+    mapped.product_name = rawItem.Product_Name || rawItem.product_name || rawItem.name || rawItem.productName || null
+    
+    // Map active ingredient
+    mapped.active_ingredient = rawItem.Active_Ingredient || rawItem.active_ingredient || rawItem.activeIngredient || null
+    
+    // Map ATC code
+    mapped.atc_code = rawItem.ATC_code || rawItem.atc_code || rawItem.ATC || rawItem.atcCode || null
+    
+    // Map barcode
+    mapped.barcode = rawItem.barcode || rawItem.Barcode || null
+    
+    // Map description
+    mapped.description = rawItem.Description || rawItem.description || rawItem.desc || null
+    
+    // Map categories - handle multiple category fields
+    const categories = []
+    if (rawItem.Category_1) categories.push(rawItem.Category_1.trim())
+    if (rawItem.Category_2) categories.push(rawItem.Category_2.trim())
+    if (rawItem.Category_3) categories.push(rawItem.Category_3.trim())
+    if (rawItem.Category_4) categories.push(rawItem.Category_4.trim())
+    if (rawItem.Category_5) categories.push(rawItem.Category_5.trim())
+    
+    // Handle other category formats
+    if (rawItem.categories) {
+      if (Array.isArray(rawItem.categories)) {
+        categories.push(...rawItem.categories)
+      } else if (typeof rawItem.categories === 'string') {
+        categories.push(...rawItem.categories.split(',').map((c: string) => c.trim()).filter(Boolean))
+      }
+    }
+    
+    if (rawItem.category) {
+      if (Array.isArray(rawItem.category)) {
+        categories.push(...rawItem.category)
+      } else if (typeof rawItem.category === 'string') {
+        categories.push(...rawItem.category.split(',').map((c: string) => c.trim()).filter(Boolean))
+      }
+    }
+    
+    // Remove empty categories and duplicates
+    mapped.categories = [...new Set(categories.filter(Boolean))]
+    
+    return mapped
+  }
+
   const handleImport = async () => {
     if (parsedData.length === 0) {
       setError('No data to import')
@@ -146,11 +196,14 @@ export function ImportDrugsModal({ isOpen, onClose, onImport }: ImportDrugsModal
 
         // Send batch to server
         try {
+          // Map the raw data to the expected format
+          const mappedBatch = batch.map(mapDrugData)
+          
           const response = await fetch('/api/drugs/import', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              items: batch,
+              items: mappedBatch,
               replace_existing: options.replaceExisting
             })
           })
@@ -365,9 +418,13 @@ export function ImportDrugsModal({ isOpen, onClose, onImport }: ImportDrugsModal
               
               {/* Sample preview */}
               <div className="bg-gray-50 rounded p-3 text-xs">
-                <div className="font-medium mb-1">Sample drug:</div>
+                <div className="font-medium mb-2">Sample drug (mapped format):</div>
                 <pre className="text-gray-600 overflow-x-auto">
-                  {JSON.stringify(parsedData[0], null, 2).substring(0, 200)}...
+                  {JSON.stringify(mapDrugData(parsedData[0]), null, 2)}
+                </pre>
+                <div className="font-medium mb-1 mt-3">Raw data:</div>
+                <pre className="text-gray-600 overflow-x-auto">
+                  {JSON.stringify(parsedData[0], null, 2).substring(0, 300)}...
                 </pre>
               </div>
             </div>
