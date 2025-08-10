@@ -145,13 +145,28 @@ api.post('/search', async (c) => {
 
 // Diseases endpoints
 api.get('/diseases', async (c) => {
+  if (!c.env?.DB) {
+    return c.json({ results: [], total: 0, has_more: false })
+  }
+  
   const db = new DatabaseService(c.env.DB)
   const query = c.req.query('q') || ''
+  const category = c.req.query('category') || ''
   const limit = parseInt(c.req.query('limit') || '20')
   const offset = parseInt(c.req.query('offset') || '0')
+  const fields = c.req.query('fields') || 'code,name,description'
   
-  const results = await db.searchDiseases(query, limit, offset)
-  return c.json(results)
+  // Priority: category filter > search query > all diseases
+  if (category) {
+    const results = await db.searchDiseasesByCategory(category, limit, offset)
+    return c.json(results)
+  } else if (query) {
+    const results = await db.searchDiseases(query, limit, offset, fields.split(','))
+    return c.json(results)
+  } else {
+    const results = await db.getAllDiseases(limit, offset)
+    return c.json(results)
+  }
 })
 
 api.get('/diseases/:id', async (c) => {

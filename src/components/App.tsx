@@ -4,11 +4,15 @@ import { Search, Plus, Settings, FileText, Pill, Stethoscope } from 'lucide-reac
 import { CreateDrugModal } from './CreateDrugModal'
 import { EditDrugModal } from './EditDrugModal'
 import { ImportDrugsModal } from './ImportDrugsModal'
+import { CreateDiseaseModal } from './CreateDiseaseModal'
+import { EditDiseaseModal } from './EditDiseaseModal'
+import { ImportDiseasesModal } from './ImportDiseasesModal'
 import { SearchBar } from './SearchBar'
 import { PrescriptionCard } from './PrescriptionCard'
 import { CreatePrescriptionModal } from './CreatePrescriptionModal'
 import { ConfigPanel } from './ConfigPanel'
 import { MedicationsView } from './MedicationsView'
+import { DiseasesView } from './DiseasesView'
 import { PrescriptionTemplate, Disease, Medication, Drug, SearchRequest } from '../types'
 
 export function PrescriptionsApp() {
@@ -26,6 +30,14 @@ export function PrescriptionsApp() {
   const [showImportDrugs, setShowImportDrugs] = useState(false)
   const [showEditDrug, setShowEditDrug] = useState(false)
   const [editingDrug, setEditingDrug] = useState<Drug | null>(null)
+  
+  // Disease-related state
+  const [showCreateDisease, setShowCreateDisease] = useState(false)
+  const [showImportDiseases, setShowImportDiseases] = useState(false)
+  const [showEditDisease, setShowEditDisease] = useState(false)
+  const [editingDisease, setEditingDisease] = useState<Disease | null>(null)
+  const [importingDiseases, setImportingDiseases] = useState(false)
+  const [diseasesImportSummary, setDiseasesImportSummary] = useState<string | null>(null)
 
   useEffect(() => {
     loadInitialData()
@@ -151,6 +163,51 @@ export function PrescriptionsApp() {
     if (deletedDrug) {
       setImportSummary(`Successfully deleted "${deletedDrug.product_name}".`)
       setTimeout(() => setImportSummary(null), 5000)
+    }
+  }
+
+  // Disease handlers
+  const handleEditDisease = (disease: Disease) => {
+    setEditingDisease(disease)
+    setShowEditDisease(true)
+  }
+
+  const handleDeleteDisease = async (id: number) => {
+    try {
+      const response = await fetch(`/api/diseases/${id}`, { method: 'DELETE' })
+      if (response.ok) {
+        // Reload diseases if needed - the DiseasesView component handles its own state
+        console.log('Disease deleted successfully')
+      }
+    } catch (error) {
+      console.error('Failed to delete disease:', error)
+    }
+  }
+
+  const handleDiseaseUpdated = async () => {
+    setShowEditDisease(false)
+    setEditingDisease(null)
+  }
+
+  const handleImportDiseases = async (diseases: any[]) => {
+    setImportingDiseases(true)
+    try {
+      const response = await fetch('/api/diseases/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ diseases })
+      })
+
+      if (response.ok) {
+        const result = await response.json() as any
+        setDiseasesImportSummary(`Successfully imported ${result.imported || 0} diseases. ${result.errors || 0} errors.`)
+        setShowImportDiseases(false)
+      }
+    } catch (error) {
+      console.error('Failed to import diseases:', error)
+      setDiseasesImportSummary('Import failed. Please try again.')
+    } finally {
+      setImportingDiseases(false)
     }
   }
 
@@ -299,30 +356,16 @@ export function PrescriptionsApp() {
     </div>
   )
 
-  // Diseases View Component
-  const DiseasesView = () => (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Diseases & Conditions</h2>
-      </div>
-      
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {diseases.map(disease => (
-          <div key={disease.id} className="card">
-            <div className="font-medium">{disease.name}</div>
-            <div className="text-sm text-gray-600">ICD-10: {disease.code}</div>
-            {disease.description && (
-              <div className="text-sm text-gray-500 mt-2">{disease.description}</div>
-            )}
-            {disease.category && (
-              <div className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded mt-2 inline-block">
-                {disease.category}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-    </div>
+  // Diseases View Component (wrapper)
+  const DiseasesViewWrapper = () => (
+    <DiseasesView
+      onShowCreateDisease={() => setShowCreateDisease(true)}
+      onShowImportDiseases={() => setShowImportDiseases(true)}
+      onEditDisease={handleEditDisease}
+      onDeleteDisease={handleDeleteDisease}
+      importingDiseases={importingDiseases}
+      importSummary={diseasesImportSummary}
+    />
   )
 
   // Medications View Component (wrapper)
@@ -434,7 +477,7 @@ export function PrescriptionsApp() {
         <Routes>
           <Route path="/" element={<SearchView />} />
           <Route path="/prescriptions" element={<PrescriptionsView />} />
-          <Route path="/diseases" element={<DiseasesView />} />
+          <Route path="/diseases" element={<DiseasesViewWrapper />} />
           <Route path="/medications" element={<MedicationsViewWrapper />} />
           <Route path="/settings" element={<SettingsView />} />
           <Route path="*" element={<SearchView />} />
@@ -474,6 +517,34 @@ export function PrescriptionsApp() {
             setEditingDrug(null)
           }}
           onSave={handleDrugUpdated}
+        />
+      )}
+
+      {showCreateDisease && (
+        <CreateDiseaseModal
+          onClose={() => setShowCreateDisease(false)}
+          onCreated={() => {
+            setShowCreateDisease(false)
+          }}
+        />
+      )}
+
+      {showImportDiseases && (
+        <ImportDiseasesModal
+          isOpen={showImportDiseases}
+          onClose={() => setShowImportDiseases(false)}
+          onImport={handleImportDiseases}
+        />
+      )}
+
+      {showEditDisease && (
+        <EditDiseaseModal
+          disease={editingDisease}
+          onClose={() => {
+            setShowEditDisease(false)
+            setEditingDisease(null)
+          }}
+          onSave={handleDiseaseUpdated}
         />
       )}
     </div>

@@ -4,22 +4,100 @@ export class DatabaseService {
   constructor(private db: D1Database) {}
 
   // Disease operations
-  async searchDiseases(query: string, limit: number = 20, offset: number = 0): Promise<SearchResponse<Disease>> {
+  async searchDiseases(query: string, limit: number = 20, offset: number = 0, fields: string[] = ['code', 'name', 'description']): Promise<SearchResponse<Disease>> {
     const searchQuery = `%${query}%`;
     
+    // Build WHERE clause based on selected fields
+    const whereConditions = [];
+    const bindValues = [];
+    
+    for (const field of fields) {
+      switch (field) {
+        case 'code':
+          whereConditions.push('code LIKE ?');
+          bindValues.push(searchQuery);
+          break;
+        case 'name':
+          whereConditions.push('name LIKE ?');
+          bindValues.push(searchQuery);
+          break;
+        case 'description':
+          whereConditions.push('description LIKE ?');
+          bindValues.push(searchQuery);
+          break;
+        case 'category':
+          whereConditions.push('category LIKE ?');
+          bindValues.push(searchQuery);
+          break;
+      }
+    }
+    
+    const whereClause = whereConditions.length > 0 ? whereConditions.join(' OR ') : '1=0';
+    
     const countResult = await this.db.prepare(
-      'SELECT COUNT(*) as total FROM diseases WHERE name LIKE ? OR code LIKE ? OR description LIKE ?'
-    ).bind(searchQuery, searchQuery, searchQuery).first();
+      `SELECT COUNT(*) as total FROM diseases WHERE ${whereClause}`
+    ).bind(...bindValues).first();
     
     const results = await this.db.prepare(
-      'SELECT * FROM diseases WHERE name LIKE ? OR code LIKE ? OR description LIKE ? ORDER BY name LIMIT ? OFFSET ?'
-    ).bind(searchQuery, searchQuery, searchQuery, limit, offset).all();
+      `SELECT * FROM diseases WHERE ${whereClause} ORDER BY name LIMIT ? OFFSET ?`
+    ).bind(...bindValues, limit, offset).all();
 
     return {
       results: results.results as unknown as Disease[],
       total: (countResult as any)?.total || 0,
       has_more: offset + limit < ((countResult as any)?.total || 0)
     };
+  }
+
+  async getAllDiseases(limit?: number, offset?: number): Promise<SearchResponse<Disease>> {
+    if (limit === undefined) {
+      const result = await this.db.prepare('SELECT * FROM diseases ORDER BY name').all();
+      const diseases = result.results as unknown as Disease[];
+      return {
+        results: diseases,
+        total: diseases.length,
+        has_more: false
+      };
+    }
+    
+    const countResult = await this.db.prepare('SELECT COUNT(*) as total FROM diseases').first();
+    const result = await this.db
+      .prepare('SELECT * FROM diseases ORDER BY name LIMIT ? OFFSET ?')
+      .bind(limit, offset || 0)
+      .all();
+      
+    const diseases = result.results as unknown as Disease[];
+
+    return {
+      results: diseases,
+      total: (countResult as any)?.total || 0,
+      has_more: (offset || 0) + limit < ((countResult as any)?.total || 0),
+    };
+  }
+
+  async searchDiseasesByCategory(category: string, limit: number = 20, offset: number = 0): Promise<SearchResponse<Disease>> {
+    try {
+      const categoryPattern = `%${category}%`;
+      
+      const countResult = await this.db
+        .prepare('SELECT COUNT(*) as total FROM diseases WHERE category LIKE ?')
+        .bind(categoryPattern)
+        .first();
+
+      const results = await this.db
+        .prepare('SELECT * FROM diseases WHERE category LIKE ? ORDER BY name LIMIT ? OFFSET ?')
+        .bind(categoryPattern, limit, offset)
+        .all();
+
+      return {
+        results: results.results as unknown as Disease[],
+        total: (countResult as any)?.total || 0,
+        has_more: offset + limit < ((countResult as any)?.total || 0),
+      };
+    } catch (error) {
+      console.error('Search diseases by category error:', error);
+      throw error;
+    }
   }
 
   async getDiseaseById(id: number): Promise<Disease | null> {
