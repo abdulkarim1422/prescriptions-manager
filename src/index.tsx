@@ -2,7 +2,7 @@ import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { DatabaseService } from './lib/database'
 import { AIService, createAIService } from './lib/ai'
-import { Env, SearchRequest, CreatePrescriptionRequest, CreateDiseaseRequest, CreateMedicationRequest, BulkImportDrugsRequest, CreateDrugRequest } from './types'
+import { Env, SearchRequest, CreatePrescriptionRequest, CreateDiseaseRequest, CreateMedicationRequest, BulkImportDrugsRequest, CreateDrugRequest, Disease } from './types'
 
 const app = new Hono<{ Bindings: Env }>()
 
@@ -191,6 +191,33 @@ api.post('/diseases', async (c) => {
   } catch (error) {
     console.error('Create disease error:', error)
     return c.json({ error: 'Failed to create disease' }, 500)
+  }
+})
+
+api.put('/diseases/:id', async (c) => {
+  const db = new DatabaseService(c.env.DB)
+  const id = parseInt(c.req.param('id'))
+  const body = await c.req.json() as Partial<Disease>
+  
+  try {
+    const disease = await db.updateDisease(id, body)
+    return c.json(disease)
+  } catch (error) {
+    console.error('Update disease error:', error)
+    return c.json({ error: 'Failed to update disease' }, 500)
+  }
+})
+
+api.delete('/diseases/:id', async (c) => {
+  const db = new DatabaseService(c.env.DB)
+  const id = parseInt(c.req.param('id'))
+  
+  try {
+    await db.deleteDisease(id)
+    return c.json({ success: true })
+  } catch (error) {
+    console.error('Delete disease error:', error)
+    return c.json({ error: 'Failed to delete disease' }, 500)
   }
 })
 

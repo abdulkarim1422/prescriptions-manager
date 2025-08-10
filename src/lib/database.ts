@@ -112,6 +112,31 @@ export class DatabaseService {
     return result as unknown as Disease;
   }
 
+  async updateDisease(id: number, disease: Partial<Disease>): Promise<Disease> {
+    const result = await this.db.prepare(
+      'UPDATE diseases SET code = COALESCE(?, code), name = COALESCE(?, name), description = COALESCE(?, description), category = COALESCE(?, category), updated_at = CURRENT_TIMESTAMP WHERE id = ? RETURNING *'
+    ).bind(disease.code, disease.name, disease.description, disease.category, id).first();
+    
+    if (!result) {
+      throw new Error('Disease not found');
+    }
+    
+    return result as unknown as Disease;
+  }
+
+  async deleteDisease(id: number): Promise<void> {
+    try {
+      const result = await this.db.prepare('DELETE FROM diseases WHERE id = ?').bind(id).run();
+      
+      if (!result.success) {
+        throw new Error('Failed to delete disease');
+      }
+    } catch (error) {
+      console.error('Delete disease error:', error);
+      throw error;
+    }
+  }
+
   // Medication operations
   async searchMedications(query: string, limit: number = 20, offset: number = 0): Promise<SearchResponse<Medication>> {
     const searchQuery = `%${query}%`;
