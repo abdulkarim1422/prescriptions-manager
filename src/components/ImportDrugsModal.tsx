@@ -227,9 +227,9 @@ export function ImportDrugsModal({ isOpen, onClose, onImport }: ImportDrugsModal
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-lg mx-4">
-        <div className="flex justify-between items-center p-6 border-b">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+        <div className="flex justify-between items-center p-4 border-b flex-shrink-0">
           <h2 className="text-xl font-semibold">Import Drugs</h2>
           <button
             onClick={handleClose}
@@ -239,7 +239,7 @@ export function ImportDrugsModal({ isOpen, onClose, onImport }: ImportDrugsModal
           </button>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="p-4 space-y-4 overflow-y-auto flex-1">
           {/* File Selection */}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-700">
@@ -452,7 +452,7 @@ export function ImportDrugsModal({ isOpen, onClose, onImport }: ImportDrugsModal
           )}
         </div>
 
-        <div className="flex justify-end gap-3 p-6 border-t">
+        <div className="flex justify-end gap-3 p-4 border-t bg-gray-50 flex-shrink-0">
           <button
             onClick={handleClose}
             disabled={importing && !importComplete}

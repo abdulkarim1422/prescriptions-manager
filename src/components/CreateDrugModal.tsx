@@ -47,14 +47,14 @@ export function CreateDrugModal({ onClose, onCreated }: CreateDrugModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-xl p-6">
-        <div className="flex justify-between items-center mb-4">
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-xl max-h-[90vh] flex flex-col">
+        <div className="flex justify-between items-center p-4 border-b flex-shrink-0">
           <h3 className="text-lg font-medium">Add Drug</h3>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700">✕</button>
         </div>
 
-        <div className="space-y-3">
+        <div className="p-4 space-y-3 overflow-y-auto flex-1">
           <div>
             <label className="block text-sm font-medium mb-1">Product Name</label>
             <input className="input-field" value={productName} onChange={(e) => setProductName(e.target.value)} placeholder="e.g., Parol 500 mg Tablet" />
@@ -85,7 +85,7 @@ export function CreateDrugModal({ onClose, onCreated }: CreateDrugModalProps) {
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 mt-6">
+        <div className="flex justify-end gap-2 p-4 border-t bg-gray-50 flex-shrink-0">
           <button onClick={onClose} className="btn-secondary">Cancel</button>
           <button onClick={handleSubmit} disabled={submitting} className={`btn-primary ${submitting ? 'opacity-60' : ''}`}>Save</button>
         </div>

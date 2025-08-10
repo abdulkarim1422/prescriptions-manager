@@ -77,8 +77,8 @@ export function EditDiseaseModal({ disease, onClose, onSave }: EditDiseaseModalP
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-md">
-        <div className="flex items-center justify-between p-6 border-b">
+      <div className="bg-white rounded-lg shadow-lg w-full max-w-md max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between p-4 border-b flex-shrink-0">
           <h2 className="text-xl font-semibold">Edit Disease</h2>
           <button
             onClick={onClose}
@@ -88,7 +88,7 @@ export function EditDiseaseModal({ disease, onClose, onSave }: EditDiseaseModalP
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-4 space-y-4 overflow-y-auto flex-1">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Disease Name *
@@ -142,7 +142,7 @@ export function EditDiseaseModal({ disease, onClose, onSave }: EditDiseaseModalP
           </div>
         </form>
 
-        <div className="flex items-center justify-end gap-3 p-6 border-t bg-gray-50">
+        <div className="flex items-center justify-end gap-3 p-4 border-t bg-gray-50 flex-shrink-0">
           <button
             type="button"
             onClick={onClose}

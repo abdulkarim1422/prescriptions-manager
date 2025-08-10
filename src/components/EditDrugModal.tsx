@@ -84,8 +84,8 @@ export function EditDrugModal({ drug, onClose, onSave }: EditDrugModalProps) {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] overflow-hidden">
-        <div className="flex items-center justify-between p-6 border-b">
+      <div className="bg-white rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between p-4 border-b flex-shrink-0">
           <h2 className="text-xl font-semibold">Edit Medication</h2>
           <button
             onClick={onClose}
@@ -95,7 +95,7 @@ export function EditDrugModal({ drug, onClose, onSave }: EditDrugModalProps) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto max-h-[calc(90vh-140px)]">
+        <form onSubmit={handleSubmit} className="p-4 space-y-4 overflow-y-auto flex-1">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Product Name *
@@ -178,7 +178,7 @@ export function EditDrugModal({ drug, onClose, onSave }: EditDrugModalProps) {
           </div>
         </form>
 
-        <div className="flex items-center justify-end gap-3 p-6 border-t bg-gray-50">
+        <div className="flex items-center justify-end gap-3 p-4 border-t bg-gray-50 flex-shrink-0">
           <button
             type="button"
             onClick={onClose}

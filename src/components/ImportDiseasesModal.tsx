@@ -248,8 +248,8 @@ export function ImportDiseasesModal({ isOpen, onClose, onImport }: ImportDisease
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-lg">
-        <div className="flex items-center justify-between p-6 border-b">
+      <div className="bg-white rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between p-4 border-b flex-shrink-0">
           <h2 className="text-xl font-semibold">Import Diseases</h2>
           <button
             onClick={handleClose}
@@ -259,7 +259,7 @@ export function ImportDiseasesModal({ isOpen, onClose, onImport }: ImportDisease
           </button>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="p-4 space-y-4 overflow-y-auto flex-1">
           {/* File Upload */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -444,7 +444,7 @@ export function ImportDiseasesModal({ isOpen, onClose, onImport }: ImportDisease
           )}
         </div>
 
-        <div className="flex items-center justify-end gap-3 p-6 border-t bg-gray-50">
+        <div className="flex items-center justify-end gap-3 p-4 border-t bg-gray-50 flex-shrink-0">
           <button
             onClick={handleClose}
             disabled={isImporting && !importComplete}
