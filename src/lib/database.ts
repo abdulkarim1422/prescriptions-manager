@@ -36,7 +36,7 @@ export class DatabaseService {
     
     // Build ORDER BY clause with validation
     const allowedSortFields = ['code', 'name', 'description', 'category', 'created_at', 'updated_at'];
-    const validSortBy = sortBy && allowedSortFields.includes(sortBy) ? sortBy : 'name';
+    const validSortBy = sortBy && allowedSortFields.includes(sortBy) ? sortBy : 'code';
     const validSortOrder = sortOrder && ['asc', 'desc'].includes(sortOrder) ? sortOrder.toUpperCase() : 'ASC';
     const orderClause = `ORDER BY ${validSortBy} ${validSortOrder}`;
     
@@ -58,7 +58,7 @@ export class DatabaseService {
   async getAllDiseases(limit?: number, offset?: number, sortBy?: string, sortOrder?: 'asc' | 'desc'): Promise<SearchResponse<Disease>> {
     // Build ORDER BY clause with validation
     const allowedSortFields = ['code', 'name', 'description', 'category', 'created_at', 'updated_at'];
-    const validSortBy = sortBy && allowedSortFields.includes(sortBy) ? sortBy : 'name';
+    const validSortBy = sortBy && allowedSortFields.includes(sortBy) ? sortBy : 'code';
     const validSortOrder = sortOrder && ['asc', 'desc'].includes(sortOrder) ? sortOrder.toUpperCase() : 'ASC';
     const orderClause = `ORDER BY ${validSortBy} ${validSortOrder}`;
     
@@ -93,7 +93,7 @@ export class DatabaseService {
       
       // Build ORDER BY clause with validation
       const allowedSortFields = ['code', 'name', 'description', 'category', 'created_at', 'updated_at'];
-      const validSortBy = sortBy && allowedSortFields.includes(sortBy) ? sortBy : 'name';
+      const validSortBy = sortBy && allowedSortFields.includes(sortBy) ? sortBy : 'code';
       const validSortOrder = sortOrder && ['asc', 'desc'].includes(sortOrder) ? sortOrder.toUpperCase() : 'ASC';
       const orderClause = `ORDER BY ${validSortBy} ${validSortOrder}`;
       

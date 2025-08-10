@@ -50,7 +50,7 @@ export function DiseasesView({
   const getPageFromUrl = () => parseInt(searchParams.get('page') || '1')
   const getShowFiltersFromUrl = () => searchParams.get('showFilters') === 'true'
   const getSortFromUrl = () => ({
-    sortBy: searchParams.get('sortBy') || 'name',
+    sortBy: searchParams.get('sortBy') || 'code',
     sortOrder: (searchParams.get('sortOrder') as 'asc' | 'desc') || 'asc'
   })
   const getFiltersFromUrl = (): SearchFilters => {
@@ -143,7 +143,7 @@ export function DiseasesView({
     
     // Update sorting
     if (updates.sortBy !== undefined) {
-      if (updates.sortBy && updates.sortBy !== 'name') {
+      if (updates.sortBy && updates.sortBy !== 'code') {
         newSearchParams.set('sortBy', updates.sortBy)
       } else {
         newSearchParams.delete('sortBy')
