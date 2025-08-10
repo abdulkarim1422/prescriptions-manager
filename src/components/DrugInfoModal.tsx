@@ -83,8 +83,8 @@ export function DrugInfoModal({ drug, onClose }: DrugInfoModalProps) {
             {drug.description && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                <div className="text-sm text-gray-900 bg-gray-50 p-3 rounded leading-relaxed">
-                  {drug.description}
+                <div className="text-sm text-gray-900 bg-gray-50 p-3 rounded leading-relaxed whitespace-pre-wrap">
+                  {drug.description.replace(/\\n/g, '\n')}
                 </div>
               </div>
             )}

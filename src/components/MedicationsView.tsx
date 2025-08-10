@@ -681,7 +681,7 @@ export function MedicationsView({
               </div>
             )}
             {drug.description && (
-              <div className="text-sm text-gray-500 mt-2 line-clamp-2">{drug.description}</div>
+              <div className="text-sm text-gray-500 mt-2 line-clamp-2 whitespace-pre-wrap">{drug.description.replace(/\\n/g, '\n')}</div>
             )}
           </div>
         ))}
