@@ -221,6 +221,75 @@ api.delete('/diseases/:id', async (c) => {
   }
 })
 
+api.post('/diseases/import', async (c) => {
+  if (!c.env?.DB) {
+    return c.json({ imported: 0, errors: 0 }, 200)
+  }
+
+  try {
+    const db = new DatabaseService(c.env.DB)
+    const body = await c.req.json()
+    
+    let diseases = []
+    
+    // Handle different input formats
+    if (Array.isArray(body)) {
+      diseases = body
+    } else if (body.diseases && Array.isArray(body.diseases)) {
+      diseases = body.diseases
+    } else if (Array.isArray(body)) {
+      // Handle hierarchical structure like diagnosis_codes.json
+      diseases = flattenDiagnosisHierarchy(body)
+    } else {
+      return c.json({ error: 'Invalid data format' }, 400)
+    }
+
+    const result = await db.bulkImportDiseases(diseases, body.replaceExisting || false)
+    return c.json(result)
+  } catch (error) {
+    console.error('Import diseases error:', error)
+    return c.json({ error: 'Failed to import diseases' }, 500)
+  }
+})
+
+// Helper function to flatten hierarchical diagnosis codes
+function flattenDiagnosisHierarchy(data: any[]): any[] {
+  const flattened: any[] = []
+  
+  function traverse(items: any[], parentCategory?: string) {
+    for (const item of items) {
+      if (item.code && item.desc) {
+        // Determine category based on code pattern
+        let category = parentCategory || 'General'
+        
+        // Top-level categories (e.g., A00-B99)
+        if (item.code.includes('-')) {
+          category = item.desc
+        }
+        // Second-level categories (e.g., A00-A09)
+        else if (item.code.match(/^[A-Z]\d{2}-[A-Z]\d{2}$/)) {
+          category = parentCategory || item.desc
+        }
+        
+        flattened.push({
+          code: item.code,
+          name: item.desc_full || item.desc,
+          description: item.desc_full ? item.desc : undefined,
+          category: category
+        })
+      }
+      
+      // Recursively process children
+      if (item.children && Array.isArray(item.children)) {
+        traverse(item.children, item.desc || parentCategory)
+      }
+    }
+  }
+  
+  traverse(data)
+  return flattened
+}
+
 // Medications endpoints
 api.get('/medications', async (c) => {
   const db = new DatabaseService(c.env.DB)

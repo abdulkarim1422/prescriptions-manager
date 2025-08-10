@@ -137,6 +137,51 @@ export class DatabaseService {
     }
   }
 
+  async bulkImportDiseases(items: any[], replaceExisting: boolean = false): Promise<{ imported: number; errors: number }> {
+    let imported = 0;
+    let errors = 0;
+
+    for (const item of items) {
+      try {
+        // Validate required fields
+        if (!item.code || !item.name) {
+          errors++;
+          continue;
+        }
+
+        if (replaceExisting && item.code) {
+          // Delete existing disease with same code
+          await this.db.prepare('DELETE FROM diseases WHERE code = ?').bind(item.code).run();
+        }
+
+        // Check if disease with this code already exists
+        const existing = await this.db.prepare('SELECT id FROM diseases WHERE code = ?').bind(item.code).first();
+        
+        if (existing && !replaceExisting) {
+          // Skip if exists and not replacing
+          continue;
+        }
+
+        // Insert the disease
+        await this.db.prepare(
+          'INSERT OR REPLACE INTO diseases (code, name, description, category) VALUES (?, ?, ?, ?)'
+        ).bind(
+          item.code,
+          item.name,
+          item.description || null,
+          item.category || 'General'
+        ).run();
+
+        imported++;
+      } catch (error) {
+        console.error('Error importing disease:', error, item);
+        errors++;
+      }
+    }
+
+    return { imported, errors };
+  }
+
   // Medication operations
   async searchMedications(query: string, limit: number = 20, offset: number = 0): Promise<SearchResponse<Medication>> {
     const searchQuery = `%${query}%`;

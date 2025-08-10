@@ -1,6 +1,44 @@
 import { useState } from 'react'
 import { X, Upload, FileText, AlertCircle } from 'lucide-react'
 
+// Helper function to flatten hierarchical diagnosis codes
+function flattenDiagnosisHierarchy(data: any[]): any[] {
+  const flattened: any[] = []
+  
+  function traverse(items: any[], parentCategory?: string) {
+    for (const item of items) {
+      if (item.code && item.desc) {
+        // Determine category based on code pattern
+        let category = parentCategory || 'General'
+        
+        // Top-level categories (e.g., A00-B99)
+        if (item.code.includes('-')) {
+          category = item.desc
+        }
+        // Second-level categories (e.g., A00-A09)
+        else if (item.code.match(/^[A-Z]\d{2}-[A-Z]\d{2}$/)) {
+          category = parentCategory || item.desc
+        }
+        
+        flattened.push({
+          code: item.code,
+          name: item.desc_full || item.desc,
+          description: item.desc_full ? item.desc : undefined,
+          category: category
+        })
+      }
+      
+      // Recursively process children
+      if (item.children && Array.isArray(item.children)) {
+        traverse(item.children, item.desc || parentCategory)
+      }
+    }
+  }
+  
+  traverse(data)
+  return flattened
+}
+
 interface ImportOptions {
   includeCode: boolean
   includeName: boolean
@@ -44,7 +82,12 @@ export function ImportDiseasesModal({ isOpen, onClose, onImport }: ImportDisease
       
       let diseases = []
       if (Array.isArray(data)) {
-        diseases = data
+        // Check if it's a hierarchical structure (like diagnosis_codes.json)
+        if (data.length > 0 && data[0].children !== undefined) {
+          diseases = flattenDiagnosisHierarchy(data)
+        } else {
+          diseases = data
+        }
       } else if (data.diseases && Array.isArray(data.diseases)) {
         diseases = data.diseases
       } else {
