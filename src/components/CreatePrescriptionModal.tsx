@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { X, Plus, Trash2 } from 'lucide-react'
 import { Disease, CreatePrescriptionRequest } from '../types'
 import { DrugSearch } from './DrugSearch'
+import { DiseaseSearch } from './DiseaseSearch'
 
 interface CreatePrescriptionModalProps {
   diseases: Disease[]
@@ -30,6 +31,7 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
     instructions: ''
   }])
   const [selectedDiseases, setSelectedDiseases] = useState<number[]>([])
+  const [selectedDiseaseObjects, setSelectedDiseaseObjects] = useState<Disease[]>([])
 
   const handleAddItem = () => {
     setItems([...items, {
@@ -70,6 +72,11 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
         ? prev.filter(id => id !== diseaseId)
         : [...prev, diseaseId]
     )
+  }
+
+  const handleDiseasesChange = (diseaseIds: number[], diseases: Disease[]) => {
+    setSelectedDiseases(diseaseIds)
+    setSelectedDiseaseObjects(diseases)
   }
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -247,21 +254,16 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
           {/* Associated Diseases */}
           <div className="space-y-4">
             <h3 className="text-lg font-medium">Associated Diseases/Conditions (Optional)</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-3">
-              {diseases.map(disease => (
-                <label key={disease.id} className="flex items-center space-x-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={selectedDiseases.includes(disease.id)}
-                    onChange={() => handleDiseaseToggle(disease.id)}
-                    className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                  />
-                  <span className="text-sm">
-                    {disease.name} ({disease.code})
-                  </span>
-                </label>
-              ))}
-            </div>
+            <p className="text-sm text-gray-600">
+              Search and select diseases or conditions that this prescription template is commonly used for.
+            </p>
+            <DiseaseSearch
+              selectedDiseaseIds={selectedDiseases}
+              onDiseasesChange={handleDiseasesChange}
+              placeholder="Search for diseases/conditions (min 2 characters)..."
+              multiple={true}
+              maxSelections={10}
+            />
           </div>
 
           {/* Actions */}
