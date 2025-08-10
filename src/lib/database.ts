@@ -4,7 +4,7 @@ export class DatabaseService {
   constructor(private db: D1Database) {}
 
   // Disease operations
-  async searchDiseases(query: string, limit: number = 20, offset: number = 0, fields: string[] = ['code', 'name', 'description']): Promise<SearchResponse<Disease>> {
+  async searchDiseases(query: string, limit: number = 20, offset: number = 0, fields: string[] = ['code', 'name', 'description'], sortBy?: string, sortOrder?: 'asc' | 'desc'): Promise<SearchResponse<Disease>> {
     const searchQuery = `%${query}%`;
     
     // Build WHERE clause based on selected fields
@@ -34,12 +34,18 @@ export class DatabaseService {
     
     const whereClause = whereConditions.length > 0 ? whereConditions.join(' OR ') : '1=0';
     
+    // Build ORDER BY clause with validation
+    const allowedSortFields = ['code', 'name', 'description', 'category', 'created_at', 'updated_at'];
+    const validSortBy = sortBy && allowedSortFields.includes(sortBy) ? sortBy : 'name';
+    const validSortOrder = sortOrder && ['asc', 'desc'].includes(sortOrder) ? sortOrder.toUpperCase() : 'ASC';
+    const orderClause = `ORDER BY ${validSortBy} ${validSortOrder}`;
+    
     const countResult = await this.db.prepare(
       `SELECT COUNT(*) as total FROM diseases WHERE ${whereClause}`
     ).bind(...bindValues).first();
     
     const results = await this.db.prepare(
-      `SELECT * FROM diseases WHERE ${whereClause} ORDER BY name LIMIT ? OFFSET ?`
+      `SELECT * FROM diseases WHERE ${whereClause} ${orderClause} LIMIT ? OFFSET ?`
     ).bind(...bindValues, limit, offset).all();
 
     return {
@@ -49,9 +55,15 @@ export class DatabaseService {
     };
   }
 
-  async getAllDiseases(limit?: number, offset?: number): Promise<SearchResponse<Disease>> {
+  async getAllDiseases(limit?: number, offset?: number, sortBy?: string, sortOrder?: 'asc' | 'desc'): Promise<SearchResponse<Disease>> {
+    // Build ORDER BY clause with validation
+    const allowedSortFields = ['code', 'name', 'description', 'category', 'created_at', 'updated_at'];
+    const validSortBy = sortBy && allowedSortFields.includes(sortBy) ? sortBy : 'name';
+    const validSortOrder = sortOrder && ['asc', 'desc'].includes(sortOrder) ? sortOrder.toUpperCase() : 'ASC';
+    const orderClause = `ORDER BY ${validSortBy} ${validSortOrder}`;
+    
     if (limit === undefined) {
-      const result = await this.db.prepare('SELECT * FROM diseases ORDER BY name').all();
+      const result = await this.db.prepare(`SELECT * FROM diseases ${orderClause}`).all();
       const diseases = result.results as unknown as Disease[];
       return {
         results: diseases,
@@ -62,7 +74,7 @@ export class DatabaseService {
     
     const countResult = await this.db.prepare('SELECT COUNT(*) as total FROM diseases').first();
     const result = await this.db
-      .prepare('SELECT * FROM diseases ORDER BY name LIMIT ? OFFSET ?')
+      .prepare(`SELECT * FROM diseases ${orderClause} LIMIT ? OFFSET ?`)
       .bind(limit, offset || 0)
       .all();
       
@@ -75,9 +87,15 @@ export class DatabaseService {
     };
   }
 
-  async searchDiseasesByCategory(category: string, limit: number = 20, offset: number = 0): Promise<SearchResponse<Disease>> {
+  async searchDiseasesByCategory(category: string, limit: number = 20, offset: number = 0, sortBy?: string, sortOrder?: 'asc' | 'desc'): Promise<SearchResponse<Disease>> {
     try {
       const categoryPattern = `%${category}%`;
+      
+      // Build ORDER BY clause with validation
+      const allowedSortFields = ['code', 'name', 'description', 'category', 'created_at', 'updated_at'];
+      const validSortBy = sortBy && allowedSortFields.includes(sortBy) ? sortBy : 'name';
+      const validSortOrder = sortOrder && ['asc', 'desc'].includes(sortOrder) ? sortOrder.toUpperCase() : 'ASC';
+      const orderClause = `ORDER BY ${validSortBy} ${validSortOrder}`;
       
       const countResult = await this.db
         .prepare('SELECT COUNT(*) as total FROM diseases WHERE category LIKE ?')
@@ -85,7 +103,7 @@ export class DatabaseService {
         .first();
 
       const results = await this.db
-        .prepare('SELECT * FROM diseases WHERE category LIKE ? ORDER BY name LIMIT ? OFFSET ?')
+        .prepare(`SELECT * FROM diseases WHERE category LIKE ? ${orderClause} LIMIT ? OFFSET ?`)
         .bind(categoryPattern, limit, offset)
         .all();
 
@@ -226,7 +244,7 @@ export class DatabaseService {
   }
 
   // Drugs operations (TR dataset)
-  async searchDrugs(query: string, limit: number = 20, offset: number = 0, fields: string[] = ['product_name', 'active_ingredient', 'atc_code']): Promise<SearchResponse<Drug>> {
+  async searchDrugs(query: string, limit: number = 20, offset: number = 0, fields: string[] = ['product_name', 'active_ingredient', 'atc_code'], sortBy?: string, sortOrder?: 'asc' | 'desc'): Promise<SearchResponse<Drug>> {
     const searchQuery = `%${query}%`;
     
     // Build WHERE clause based on selected fields
@@ -264,13 +282,19 @@ export class DatabaseService {
     
     const whereClause = whereConditions.length > 0 ? whereConditions.join(' OR ') : '1=0';
     
+    // Build ORDER BY clause with validation
+    const allowedSortFields = ['product_name', 'active_ingredient', 'atc_code', 'barcode', 'created_at', 'updated_at'];
+    const validSortBy = sortBy && allowedSortFields.includes(sortBy) ? sortBy : 'product_name';
+    const validSortOrder = sortOrder && ['asc', 'desc'].includes(sortOrder) ? sortOrder.toUpperCase() : 'ASC';
+    const orderClause = `ORDER BY ${validSortBy} ${validSortOrder}`;
+    
     const countResult = await this.db
       .prepare(`SELECT COUNT(*) as total FROM drugs WHERE ${whereClause}`)
       .bind(...bindValues)
       .first();
 
     const results = await this.db
-      .prepare(`SELECT * FROM drugs WHERE ${whereClause} ORDER BY product_name LIMIT ? OFFSET ?`)
+      .prepare(`SELECT * FROM drugs WHERE ${whereClause} ${orderClause} LIMIT ? OFFSET ?`)
       .bind(...bindValues, limit, offset)
       .all();
 
@@ -286,10 +310,16 @@ export class DatabaseService {
     };
   }
 
-  async getAllDrugs(limit?: number, offset?: number): Promise<SearchResponse<Drug>> {
+  async getAllDrugs(limit?: number, offset?: number, sortBy?: string, sortOrder?: 'asc' | 'desc'): Promise<SearchResponse<Drug>> {
+    // Build ORDER BY clause with validation
+    const allowedSortFields = ['product_name', 'active_ingredient', 'atc_code', 'barcode', 'created_at', 'updated_at'];
+    const validSortBy = sortBy && allowedSortFields.includes(sortBy) ? sortBy : 'product_name';
+    const validSortOrder = sortOrder && ['asc', 'desc'].includes(sortOrder) ? sortOrder.toUpperCase() : 'ASC';
+    const orderClause = `ORDER BY ${validSortBy} ${validSortOrder}`;
+    
     if (limit === undefined) {
       // Original behavior for backwards compatibility
-      const result = await this.db.prepare('SELECT * FROM drugs ORDER BY product_name').all();
+      const result = await this.db.prepare(`SELECT * FROM drugs ${orderClause}`).all();
       const rows = (result.results as unknown as any[]).map((r) => ({
         ...r,
         categories: typeof r.categories === 'string' ? JSON.parse(r.categories || '[]') : r.categories,
@@ -304,7 +334,7 @@ export class DatabaseService {
     // Paginated version
     const countResult = await this.db.prepare('SELECT COUNT(*) as total FROM drugs').first();
     const result = await this.db
-      .prepare('SELECT * FROM drugs ORDER BY product_name LIMIT ? OFFSET ?')
+      .prepare(`SELECT * FROM drugs ${orderClause} LIMIT ? OFFSET ?`)
       .bind(limit, offset || 0)
       .all();
       
@@ -320,9 +350,15 @@ export class DatabaseService {
     };
   }
 
-  async searchDrugsByCategory(category: string, limit: number = 20, offset: number = 0): Promise<SearchResponse<Drug>> {
+  async searchDrugsByCategory(category: string, limit: number = 20, offset: number = 0, sortBy?: string, sortOrder?: 'asc' | 'desc'): Promise<SearchResponse<Drug>> {
     try {
       const categoryPattern = `%"${category}"%`;
+      
+      // Build ORDER BY clause with validation
+      const allowedSortFields = ['product_name', 'active_ingredient', 'atc_code', 'barcode', 'created_at', 'updated_at'];
+      const validSortBy = sortBy && allowedSortFields.includes(sortBy) ? sortBy : 'product_name';
+      const validSortOrder = sortOrder && ['asc', 'desc'].includes(sortOrder) ? sortOrder.toUpperCase() : 'ASC';
+      const orderClause = `ORDER BY ${validSortBy} ${validSortOrder}`;
       
       const countResult = await this.db
         .prepare('SELECT COUNT(*) as total FROM drugs WHERE categories LIKE ?')
@@ -330,7 +366,7 @@ export class DatabaseService {
         .first();
 
       const results = await this.db
-        .prepare('SELECT * FROM drugs WHERE categories LIKE ? ORDER BY product_name LIMIT ? OFFSET ?')
+        .prepare(`SELECT * FROM drugs WHERE categories LIKE ? ${orderClause} LIMIT ? OFFSET ?`)
         .bind(categoryPattern, limit, offset)
         .all();
 

@@ -155,16 +155,18 @@ api.get('/diseases', async (c) => {
   const limit = parseInt(c.req.query('limit') || '20')
   const offset = parseInt(c.req.query('offset') || '0')
   const fields = c.req.query('fields') || 'code,name,description'
+  const sortBy = c.req.query('sortBy') || ''
+  const sortOrder = c.req.query('sortOrder') as 'asc' | 'desc' | undefined
   
   // Priority: category filter > search query > all diseases
   if (category) {
-    const results = await db.searchDiseasesByCategory(category, limit, offset)
+    const results = await db.searchDiseasesByCategory(category, limit, offset, sortBy, sortOrder)
     return c.json(results)
   } else if (query) {
-    const results = await db.searchDiseases(query, limit, offset, fields.split(','))
+    const results = await db.searchDiseases(query, limit, offset, fields.split(','), sortBy, sortOrder)
     return c.json(results)
   } else {
-    const results = await db.getAllDiseases(limit, offset)
+    const results = await db.getAllDiseases(limit, offset, sortBy, sortOrder)
     return c.json(results)
   }
 })
@@ -345,16 +347,18 @@ api.get('/drugs', async (c) => {
   const limit = parseInt(c.req.query('limit') || '20')
   const offset = parseInt(c.req.query('offset') || '0')
   const fields = c.req.query('fields') || 'product_name,active_ingredient,atc_code'
+  const sortBy = c.req.query('sortBy') || ''
+  const sortOrder = c.req.query('sortOrder') as 'asc' | 'desc' | undefined
   
   // Priority: category filter > search query > all drugs
   if (category) {
-    const results = await db.searchDrugsByCategory(category, limit, offset)
+    const results = await db.searchDrugsByCategory(category, limit, offset, sortBy, sortOrder)
     return c.json(results)
   } else if (query) {
-    const results = await db.searchDrugs(query, limit, offset, fields.split(','))
+    const results = await db.searchDrugs(query, limit, offset, fields.split(','), sortBy, sortOrder)
     return c.json(results)
   } else {
-    const results = await db.getAllDrugs(limit, offset)
+    const results = await db.getAllDrugs(limit, offset, sortBy, sortOrder)
     return c.json(results)
   }
 })

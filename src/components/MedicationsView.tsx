@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Search, Filter, ChevronDown, Plus, Edit, Trash2, Info } from 'lucide-react'
+import { Search, Filter, ChevronDown, Plus, Edit, Trash2, Info, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
 import { Drug } from '../types'
 import { DrugInfoModal } from './DrugInfoModal'
 
@@ -54,6 +54,10 @@ export function MedicationsView({
   const getSearchQueryFromUrl = () => searchParams.get('q') || ''
   const getPageFromUrl = () => parseInt(searchParams.get('page') || '1')
   const getShowFiltersFromUrl = () => searchParams.get('showFilters') === 'true'
+  const getSortFromUrl = () => ({
+    sortBy: searchParams.get('sortBy') || 'product_name',
+    sortOrder: (searchParams.get('sortOrder') as 'asc' | 'desc') || 'asc'
+  })
   const getFiltersFromUrl = (): SearchFilters => {
     const defaultFilters: SearchFilters = {
       productName: true,
@@ -90,6 +94,7 @@ export function MedicationsView({
   const [showFilters, setShowFilters] = useState(getShowFiltersFromUrl())
   const [filters, setFilters] = useState<SearchFilters>(getFiltersFromUrl())
   const [selectedCategory, setSelectedCategory] = useState<string | null>(searchParams.get('category') || null)
+  const [sortConfig, setSortConfig] = useState(getSortFromUrl())
   const [pagination, setPagination] = useState<PaginationState>({
     currentPage: getPageFromUrl(),
     totalCount: 0,
@@ -105,7 +110,9 @@ export function MedicationsView({
     page?: number, 
     filters?: Partial<SearchFilters>,
     showFilters?: boolean,
-    category?: string | null
+    category?: string | null,
+    sortBy?: string,
+    sortOrder?: 'asc' | 'desc'
   }) => {
     const newSearchParams = new URLSearchParams(searchParams)
     
@@ -142,6 +149,23 @@ export function MedicationsView({
         newSearchParams.set('category', updates.category)
       } else {
         newSearchParams.delete('category')
+      }
+    }
+    
+    // Update sorting
+    if (updates.sortBy !== undefined) {
+      if (updates.sortBy && updates.sortBy !== 'product_name') {
+        newSearchParams.set('sortBy', updates.sortBy)
+      } else {
+        newSearchParams.delete('sortBy')
+      }
+    }
+    
+    if (updates.sortOrder !== undefined) {
+      if (updates.sortOrder && updates.sortOrder !== 'asc') {
+        newSearchParams.set('sortOrder', updates.sortOrder)
+      } else {
+        newSearchParams.delete('sortOrder')
       }
     }
     
@@ -210,12 +234,22 @@ export function MedicationsView({
     }
   }, [selectedCategory])
 
+  // Watch for sorting changes
+  useEffect(() => {
+    if (searchQuery.trim() !== '') {
+      searchDrugs(true)
+    } else {
+      loadDrugs(true)
+    }
+  }, [sortConfig])
+
   // New useEffect to handle URL parameter changes
   useEffect(() => {
     const urlQuery = getSearchQueryFromUrl()
     const urlPage = getPageFromUrl()
     const urlShowFilters = getShowFiltersFromUrl()
     const urlFilters = getFiltersFromUrl()
+    const urlSort = getSortFromUrl()
     
     // Update local state if URL parameters changed (e.g., from browser back/forward)
     if (urlQuery !== searchQuery) {
@@ -235,6 +269,11 @@ export function MedicationsView({
     if (filtersChanged) {
       setFilters(urlFilters)
     }
+    
+    // Compare sorting
+    if (urlSort.sortBy !== sortConfig.sortBy || urlSort.sortOrder !== sortConfig.sortOrder) {
+      setSortConfig(urlSort)
+    }
   }, [searchParams])
 
   const loadDrugs = async (reset = false) => {
@@ -249,6 +288,14 @@ export function MedicationsView({
       // Add category filter if selected
       if (selectedCategory) {
         url += `&category=${encodeURIComponent(selectedCategory)}`
+      }
+      
+      // Add sorting parameters
+      if (sortConfig.sortBy) {
+        url += `&sortBy=${encodeURIComponent(sortConfig.sortBy)}`
+      }
+      if (sortConfig.sortOrder) {
+        url += `&sortOrder=${encodeURIComponent(sortConfig.sortOrder)}`
       }
       
       const response = await fetch(url)
@@ -310,6 +357,14 @@ export function MedicationsView({
       if (selectedCategory) {
         queryParams.set('category', selectedCategory)
       }
+      
+      // Add sorting parameters
+      if (sortConfig.sortBy) {
+        queryParams.set('sortBy', sortConfig.sortBy)
+      }
+      if (sortConfig.sortOrder) {
+        queryParams.set('sortOrder', sortConfig.sortOrder)
+      }
 
       const response = await fetch(`/api/drugs?${queryParams}`)
       if (response.ok) {
@@ -359,6 +414,14 @@ export function MedicationsView({
   const handleSearchQueryChange = (value: string) => {
     setSearchQuery(value)
     updateUrlParams({ q: value, page: 1 })
+    setPagination(prev => ({ ...prev, currentPage: 1 }))
+  }
+
+  const handleSortChange = (newSortBy: string) => {
+    const newSortOrder: 'asc' | 'desc' = sortConfig.sortBy === newSortBy && sortConfig.sortOrder === 'asc' ? 'desc' : 'asc'
+    const newSortConfig = { sortBy: newSortBy, sortOrder: newSortOrder }
+    setSortConfig(newSortConfig)
+    updateUrlParams({ sortBy: newSortBy, sortOrder: newSortOrder, page: 1 })
     setPagination(prev => ({ ...prev, currentPage: 1 }))
   }
 
@@ -570,6 +633,44 @@ export function MedicationsView({
             </div>
           </div>
         )}
+
+        {/* Sorting Options */}
+        <div className="bg-gray-50 rounded-lg p-4 border">
+          <h4 className="font-medium text-gray-700 mb-3">Sort by:</h4>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { key: 'product_name', label: 'Product Name' },
+              { key: 'active_ingredient', label: 'Active Ingredient' },
+              { key: 'atc_code', label: 'ATC Code' },
+              { key: 'barcode', label: 'Barcode' },
+              { key: 'created_at', label: 'Date Added' },
+              { key: 'updated_at', label: 'Last Modified' }
+            ].map(({ key, label }) => {
+              const isActive = sortConfig.sortBy === key
+              const isAsc = isActive && sortConfig.sortOrder === 'asc'
+              const isDesc = isActive && sortConfig.sortOrder === 'desc'
+              
+              return (
+                <button
+                  key={key}
+                  onClick={() => handleSortChange(key)}
+                  className={`flex items-center gap-2 px-3 py-2 rounded text-sm transition-colors ${
+                    isActive 
+                      ? 'bg-blue-100 text-blue-800 border border-blue-300' 
+                      : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  {label}
+                  {isActive ? (
+                    isAsc ? <ArrowUp size={14} /> : <ArrowDown size={14} />
+                  ) : (
+                    <ArrowUpDown size={14} className="text-gray-400" />
+                  )}
+                </button>
+              )
+            })}
+          </div>
+        </div>
       </div>
 
       {/* Selected Category Filter */}
