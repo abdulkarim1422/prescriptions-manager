@@ -100,6 +100,20 @@ export function PrescriptionsApp() {
   }
 
   const handleImportDrugs = async (items: any[], options: any) => {
+    // The ImportDrugsModal now handles the actual import
+    // This function just receives the final summary for backward compatibility
+    
+    if (options && typeof options.imported === 'number') {
+      // New enhanced modal passed summary info
+      setImportSummary(
+        `Successfully imported ${options.imported} drugs. ${options.errors || 0} errors.`
+      )
+      setTimeout(() => setImportSummary(null), 10000) // Clear after 10 seconds
+      await reloadDrugs() // Reload to show imported data
+      return
+    }
+
+    // Legacy support for old modal behavior (if needed)
     try {
       setImportingDrugs(true)
       setImportSummary(null)
