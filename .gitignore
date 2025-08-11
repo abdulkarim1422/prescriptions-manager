@@ -41,6 +41,3 @@ TODO.md
 
 # cloudflare
 wrangler.jsonc
-
-# db
-migrations/
