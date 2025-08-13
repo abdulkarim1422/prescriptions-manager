@@ -731,7 +731,8 @@ export class DatabaseService {
   async createPrescription(
     template: Omit<PrescriptionTemplate, 'id' | 'created_at' | 'updated_at' | 'is_active'>,
     items: Omit<PrescriptionItem, 'id' | 'prescription_template_id'>[],
-    diseaseIds: number[] = []
+    diseaseIds: number[] = [],
+    findingIds: number[] = []
   ): Promise<PrescriptionTemplate> {
     // Create prescription template
     const prescription = await this.db.prepare(
@@ -757,6 +758,13 @@ export class DatabaseService {
       await this.db.prepare(
         'INSERT OR IGNORE INTO disease_prescriptions (disease_id, prescription_template_id, confidence_score) VALUES (?, ?, 1.0)'
       ).bind(diseaseId, prescription.id).run();
+    }
+
+    // Associate with findings
+    for (const findingId of findingIds) {
+      await this.db.prepare(
+        'INSERT OR IGNORE INTO finding_prescriptions (finding_id, prescription_template_id, confidence_score) VALUES (?, ?, 1.0)'
+      ).bind(findingId, prescription.id).run();
     }
 
     return prescription;

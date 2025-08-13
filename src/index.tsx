@@ -503,7 +503,8 @@ api.post('/prescriptions', async (c) => {
         created_by: 'user' // In real app, get from auth
       },
       body.items,
-      body.disease_ids
+      body.disease_ids,
+      body.finding_ids
     )
     return c.json(prescription, 201)
   } catch (error) {

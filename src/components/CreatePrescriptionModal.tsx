@@ -3,6 +3,8 @@ import { X, Plus, Trash2 } from 'lucide-react'
 import { Disease, CreatePrescriptionRequest } from '../types'
 import { DrugSearch } from './DrugSearch'
 import { DiseaseSearch } from './DiseaseSearch'
+import { FindingsSearch } from './FindingsSearch'
+import { Finding } from './FindingsView'
 
 interface CreatePrescriptionModalProps {
   diseases: Disease[]
@@ -32,6 +34,8 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
   }])
   const [selectedDiseases, setSelectedDiseases] = useState<number[]>([])
   const [selectedDiseaseObjects, setSelectedDiseaseObjects] = useState<Disease[]>([])
+  const [selectedFindings, setSelectedFindings] = useState<number[]>([])
+  const [selectedFindingObjects, setSelectedFindingObjects] = useState<Finding[]>([])
 
   const handleAddItem = () => {
     setItems([...items, {
@@ -79,6 +83,11 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
     setSelectedDiseaseObjects(diseases)
   }
 
+  const handleFindingsChange = (findingIds: number[], findings: Finding[]) => {
+    setSelectedFindings(findingIds)
+    setSelectedFindingObjects(findings)
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     
@@ -103,7 +112,8 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
       name: name.trim(),
       description: description.trim() || undefined,
       items: validItems,
-      disease_ids: selectedDiseases.length > 0 ? selectedDiseases : undefined
+      disease_ids: selectedDiseases.length > 0 ? selectedDiseases : undefined,
+      finding_ids: selectedFindings.length > 0 ? selectedFindings : undefined
     })
   }
 
@@ -261,6 +271,21 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
               selectedDiseaseIds={selectedDiseases}
               onDiseasesChange={handleDiseasesChange}
               placeholder="Search for diseases/conditions (min 2 characters)..."
+              multiple={true}
+              maxSelections={10}
+            />
+          </div>
+
+          {/* Associated Findings */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">Associated Findings (Optional)</h3>
+            <p className="text-sm text-gray-600">
+              Search and select clinical findings that this prescription template is commonly used for.
+            </p>
+            <FindingsSearch
+              selectedFindingIds={selectedFindings}
+              onFindingsChange={handleFindingsChange}
+              placeholder="Search for findings (min 2 characters)..."
               multiple={true}
               maxSelections={10}
             />

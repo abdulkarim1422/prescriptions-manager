@@ -126,6 +126,7 @@ export interface CreatePrescriptionRequest {
     instructions?: string;
   }[];
   disease_ids?: number[];
+  finding_ids?: number[];
 }
 
 export interface UpdatePrescriptionRequest extends Partial<CreatePrescriptionRequest> {

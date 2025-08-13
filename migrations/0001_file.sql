@@ -87,6 +87,18 @@ CREATE TABLE IF NOT EXISTS disease_prescriptions (
     UNIQUE(disease_id, prescription_template_id)
 );
 
+-- Create finding prescriptions association table
+CREATE TABLE IF NOT EXISTS finding_prescriptions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    finding_id INTEGER NOT NULL,
+    prescription_template_id INTEGER NOT NULL,
+    confidence_score REAL DEFAULT 1.0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (finding_id) REFERENCES findings(id) ON DELETE CASCADE,
+    FOREIGN KEY (prescription_template_id) REFERENCES prescription_templates(id) ON DELETE CASCADE,
+    UNIQUE(finding_id, prescription_template_id)
+);
+
 -- Create search logs table
 CREATE TABLE IF NOT EXISTS search_logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -133,6 +145,9 @@ CREATE INDEX IF NOT EXISTS idx_prescription_items_medication_id ON prescription_
 
 CREATE INDEX IF NOT EXISTS idx_disease_prescriptions_disease_id ON disease_prescriptions(disease_id);
 CREATE INDEX IF NOT EXISTS idx_disease_prescriptions_template_id ON disease_prescriptions(prescription_template_id);
+
+CREATE INDEX IF NOT EXISTS idx_finding_prescriptions_finding_id ON finding_prescriptions(finding_id);
+CREATE INDEX IF NOT EXISTS idx_finding_prescriptions_template_id ON finding_prescriptions(prescription_template_id);
 
 CREATE INDEX IF NOT EXISTS idx_search_logs_query ON search_logs(query);
 CREATE INDEX IF NOT EXISTS idx_search_logs_type ON search_logs(search_type);
