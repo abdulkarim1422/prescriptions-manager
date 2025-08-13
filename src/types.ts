@@ -1,3 +1,12 @@
+export interface Finding {
+  id: number;
+  code?: string;
+  name: string;
+  description?: string;
+  category?: string;
+  created_at: string;
+  updated_at: string;
+}
 // Database types
 export interface Disease {
   id: number;

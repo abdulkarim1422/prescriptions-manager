@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Routes, Route, NavLink, useNavigate } from 'react-router-dom'
-import { Search, Plus, Settings, FileText, Pill, Stethoscope } from 'lucide-react'
+import { Search, Plus, Settings, FileText, Pill, Stethoscope, ChevronDown } from 'lucide-react'
 import { CreateDrugModal } from './CreateDrugModal'
 import { EditDrugModal } from './EditDrugModal'
 import { ImportDrugsModal } from './ImportDrugsModal'
@@ -13,6 +13,7 @@ import { CreatePrescriptionModal } from './CreatePrescriptionModal'
 import { ConfigPanel } from './ConfigPanel'
 import { MedicationsView } from './MedicationsView'
 import { DiseasesView } from './DiseasesView'
+import { FindingsView } from './FindingsView'
 import { PrescriptionTemplate, Disease, Medication, Drug, SearchRequest } from '../types'
 
 export function PrescriptionsApp() {
@@ -431,19 +432,31 @@ export function PrescriptionsApp() {
                 Prescriptions
               </NavLink>
               
-              <NavLink
-                to="/diseases"
-                className={({ isActive }) =>
-                  `px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${
-                    isActive 
-                      ? 'bg-primary-100 text-primary-700' 
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                  }`
-                }
-              >
-                <Stethoscope size={18} />
-                Diseases
-              </NavLink>
+              <div className="relative group">
+                <div className="px-4 py-2 rounded-lg flex items-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 cursor-default select-none">
+                  <Stethoscope size={18} />
+                  Diseases & Findings
+                  <ChevronDown size={16} className="ml-1" />
+                </div>
+                <div className="absolute left-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                  <NavLink
+                    to="/diseases"
+                    className={({ isActive }) =>
+                      `block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-t-lg ${isActive ? 'bg-primary-100 text-primary-700' : ''}`
+                    }
+                  >
+                    Diseases
+                  </NavLink>
+                  <NavLink
+                    to="/findings"
+                    className={({ isActive }) =>
+                      `block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-b-lg ${isActive ? 'bg-primary-100 text-primary-700' : ''}`
+                    }
+                  >
+                    Findings
+                  </NavLink>
+                </div>
+              </div>
               
               <NavLink
                 to="/medications"
@@ -482,6 +495,7 @@ export function PrescriptionsApp() {
           <Route path="/" element={<SearchView />} />
           <Route path="/prescriptions" element={<PrescriptionsView />} />
           <Route path="/diseases" element={<DiseasesViewWrapper />} />
+          <Route path="/findings" element={<FindingsView />} />
           <Route path="/medications" element={<MedicationsViewWrapper />} />
           <Route path="/settings" element={<SettingsView />} />
           <Route path="*" element={<SearchView />} />

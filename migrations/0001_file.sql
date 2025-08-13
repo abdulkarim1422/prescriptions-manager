@@ -1,3 +1,17 @@
+-- Create findings table
+CREATE TABLE IF NOT EXISTS findings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    code TEXT UNIQUE,
+    name TEXT NOT NULL,
+    description TEXT,
+    category TEXT DEFAULT 'General',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_findings_code ON findings(code);
+CREATE INDEX IF NOT EXISTS idx_findings_name ON findings(name);
+CREATE INDEX IF NOT EXISTS idx_findings_category ON findings(category);
 -- Migration number: 0001
 
 -- Create diseases table

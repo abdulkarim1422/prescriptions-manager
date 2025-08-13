@@ -3,6 +3,123 @@ import { Env, Disease, PrescriptionTemplate, Medication, PrescriptionItem, Disea
 export class DatabaseService {
   constructor(private db: D1Database) {}
 
+  // Finding operations
+  async searchFindings(query: string, limit: number = 20, offset: number = 0, fields: string[] = ['code', 'name', 'description'], sortBy?: string, sortOrder?: 'asc' | 'desc') {
+    const searchQuery = `%${query}%`;
+    const whereConditions = [];
+    const bindValues = [];
+    for (const field of fields) {
+      switch (field) {
+        case 'code':
+          whereConditions.push('code LIKE ?');
+          bindValues.push(searchQuery);
+          break;
+        case 'name':
+          whereConditions.push('name LIKE ?');
+          bindValues.push(searchQuery);
+          break;
+        case 'description':
+          whereConditions.push('description LIKE ?');
+          bindValues.push(searchQuery);
+          break;
+        case 'category':
+          whereConditions.push('category LIKE ?');
+          bindValues.push(searchQuery);
+          break;
+      }
+    }
+    const whereClause = whereConditions.length > 0 ? whereConditions.join(' OR ') : '1=0';
+    const allowedSortFields = ['code', 'name', 'description', 'category', 'created_at', 'updated_at'];
+    const validSortBy = sortBy && allowedSortFields.includes(sortBy) ? sortBy : 'code';
+    const validSortOrder = sortOrder && ['asc', 'desc'].includes(sortOrder) ? sortOrder.toUpperCase() : 'ASC';
+    const orderClause = `ORDER BY ${validSortBy} ${validSortOrder}`;
+    const countResult = await this.db.prepare(`SELECT COUNT(*) as total FROM findings WHERE ${whereClause}`).bind(...bindValues).first();
+    const results = await this.db.prepare(`SELECT * FROM findings WHERE ${whereClause} ${orderClause} LIMIT ? OFFSET ?`).bind(...bindValues, limit, offset).all();
+    return {
+      results: results.results,
+      total: (countResult as any)?.total || 0,
+      has_more: offset + limit < ((countResult as any)?.total || 0)
+    };
+  }
+
+  async getAllFindings(limit?: number, offset?: number, sortBy?: string, sortOrder?: 'asc' | 'desc') {
+    const allowedSortFields = ['code', 'name', 'description', 'category', 'created_at', 'updated_at'];
+    const validSortBy = sortBy && allowedSortFields.includes(sortBy) ? sortBy : 'code';
+    const validSortOrder = sortOrder && ['asc', 'desc'].includes(sortOrder) ? sortOrder.toUpperCase() : 'ASC';
+    const orderClause = `ORDER BY ${validSortBy} ${validSortOrder}`;
+    if (limit === undefined) {
+      const result = await this.db.prepare(`SELECT * FROM findings ${orderClause}`).all();
+      const findings = result.results;
+      return {
+        results: findings,
+        total: findings.length,
+        has_more: false
+      };
+    }
+    const countResult = await this.db.prepare('SELECT COUNT(*) as total FROM findings').first();
+    const result = await this.db.prepare(`SELECT * FROM findings ${orderClause} LIMIT ? OFFSET ?`).bind(limit, offset || 0).all();
+    const findings = result.results;
+    return {
+      results: findings,
+      total: (countResult as any)?.total || 0,
+      has_more: (offset || 0) + limit < ((countResult as any)?.total || 0),
+    };
+  }
+
+  async getFindingById(id: number) {
+    const result = await this.db.prepare('SELECT * FROM findings WHERE id = ?').bind(id).first();
+    return result || null;
+  }
+
+  async createFinding(finding) {
+    const result = await this.db.prepare(
+      'INSERT INTO findings (code, name, description, category) VALUES (?, ?, ?, ?) RETURNING *'
+    ).bind(finding.code, finding.name, finding.description, finding.category).first();
+    return result;
+  }
+
+  async updateFinding(id, finding) {
+    const result = await this.db.prepare(
+      'UPDATE findings SET code = COALESCE(?, code), name = COALESCE(?, name), description = COALESCE(?, description), category = COALESCE(?, category), updated_at = CURRENT_TIMESTAMP WHERE id = ? RETURNING *'
+    ).bind(finding.code, finding.name, finding.description, finding.category, id).first();
+    if (!result) throw new Error('Finding not found');
+    return result;
+  }
+
+  async deleteFinding(id) {
+    const result = await this.db.prepare('DELETE FROM findings WHERE id = ?').bind(id).run();
+    if (!result.success) throw new Error('Failed to delete finding');
+  }
+
+  async bulkImportFindings(items, replaceExisting = false) {
+    let imported = 0;
+    let errors = 0;
+    for (const item of items) {
+      try {
+        if (!item.name) { errors++; continue; }
+        if (replaceExisting && item.code) {
+          await this.db.prepare('DELETE FROM findings WHERE code = ?').bind(item.code).run();
+        }
+        const existing = item.code ? await this.db.prepare('SELECT id FROM findings WHERE code = ?').bind(item.code).first() : null;
+        if (existing && !replaceExisting) continue;
+        await this.db.prepare(
+          'INSERT OR REPLACE INTO findings (code, name, description, category) VALUES (?, ?, ?, ?)'
+        ).bind(
+          item.code,
+          item.name,
+          item.description || null,
+          item.category || 'General'
+        ).run();
+        imported++;
+      } catch (error) {
+        console.error('Error importing finding:', error, item);
+        errors++;
+      }
+    }
+    return { imported, errors };
+  }
+
+
   // Disease operations
   async searchDiseases(query: string, limit: number = 20, offset: number = 0, fields: string[] = ['code', 'name', 'description'], sortBy?: string, sortOrder?: 'asc' | 'desc'): Promise<SearchResponse<Disease>> {
     const searchQuery = `%${query}%`;
