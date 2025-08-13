@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { CreateFindingModal } from './CreateFindingModal'
 
 export interface Finding {
   id: string
@@ -11,6 +12,7 @@ export function FindingsView() {
   const [findings, setFindings] = useState<Finding[]>([])
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showCreate, setShowCreate] = useState(false)
 
   useEffect(() => {
     fetchFindings()
@@ -21,7 +23,7 @@ export function FindingsView() {
     try {
       const res = await fetch('/api/findings')
       if (res.ok) {
-        const data = await res.json()
+        const data = await res.json() as { results: Finding[] }
         setFindings(Array.isArray(data.results) ? data.results : [])
       }
     } finally {
@@ -34,9 +36,26 @@ export function FindingsView() {
     (f.code && f.code.toLowerCase().includes(search.toLowerCase()))
   )
 
+  async function handleAddFinding(finding: { name: string; code?: string; description?: string }) {
+    const res = await fetch('/api/findings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(finding)
+    })
+    if (res.ok) {
+      await fetchFindings()
+    }
+  }
+
   return (
     <div>
       <h2 className="text-2xl font-bold mb-4">Findings</h2>
+      <button
+        className="mb-4 px-4 py-2 rounded bg-primary-600 text-white"
+        onClick={() => setShowCreate(true)}
+      >
+        + Add Finding
+      </button>
       <input
         type="text"
         className="border rounded px-3 py-2 mb-4 w-full"
@@ -56,6 +75,12 @@ export function FindingsView() {
             </li>
           ))}
         </ul>
+      )}
+      {showCreate && (
+        <CreateFindingModal
+          onAdd={handleAddFinding}
+          onClose={() => setShowCreate(false)}
+        />
       )}
     </div>
   )

@@ -554,6 +554,78 @@ api.get('/diseases/:id/prescriptions', async (c) => {
   return c.json({ results: prescriptions, total: prescriptions.length, has_more: false })
 })
 
+// Findings endpoints
+api.get('/findings', async (c) => {
+  if (!c.env?.DB) {
+    return c.json({ results: [], total: 0, has_more: false })
+  }
+  const db = new DatabaseService(c.env.DB)
+  const query = c.req.query('q') || ''
+  const category = c.req.query('category') || ''
+  const limit = parseInt(c.req.query('limit') || '20')
+  const offset = parseInt(c.req.query('offset') || '0')
+  const fields = c.req.query('fields') || 'code,name,description'
+  const sortBy = c.req.query('sortBy') || ''
+  const sortOrder = c.req.query('sortOrder') as 'asc' | 'desc' | undefined
+  if (category) {
+    const results = await db.searchFindings(category, limit, offset, fields.split(','), sortBy, sortOrder)
+    return c.json(results)
+  } else if (query) {
+    const results = await db.searchFindings(query, limit, offset, fields.split(','), sortBy, sortOrder)
+    return c.json(results)
+  } else {
+    const results = await db.getAllFindings(limit, offset, sortBy, sortOrder)
+    return c.json(results)
+  }
+})
+
+api.get('/findings/:id', async (c) => {
+  const db = new DatabaseService(c.env.DB)
+  const id = parseInt(c.req.param('id'))
+  const finding = await db.getFindingById(id)
+  if (!finding) {
+    return c.json({ error: 'Finding not found' }, 404)
+  }
+  return c.json(finding)
+})
+
+api.post('/findings', async (c) => {
+  const db = new DatabaseService(c.env.DB)
+  const body = await c.req.json()
+  try {
+    const finding = await db.createFinding(body)
+    return c.json(finding, 201)
+  } catch (error) {
+    console.error('Create finding error:', error)
+    return c.json({ error: 'Failed to create finding' }, 500)
+  }
+})
+
+api.put('/findings/:id', async (c) => {
+  const db = new DatabaseService(c.env.DB)
+  const id = parseInt(c.req.param('id'))
+  const body = await c.req.json()
+  try {
+    const finding = await db.updateFinding(id, body)
+    return c.json(finding)
+  } catch (error) {
+    console.error('Update finding error:', error)
+    return c.json({ error: 'Failed to update finding' }, 500)
+  }
+})
+
+api.delete('/findings/:id', async (c) => {
+  const db = new DatabaseService(c.env.DB)
+  const id = parseInt(c.req.param('id'))
+  try {
+    await db.deleteFinding(id)
+    return c.json({ success: true })
+  } catch (error) {
+    console.error('Delete finding error:', error)
+    return c.json({ error: 'Failed to delete finding' }, 500)
+  }
+})
+
 // Configuration endpoints
 api.get('/config/:key', async (c) => {
   const db = new DatabaseService(c.env.DB)

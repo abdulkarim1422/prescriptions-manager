@@ -74,14 +74,25 @@ export class DatabaseService {
   async createFinding(finding) {
     const result = await this.db.prepare(
       'INSERT INTO findings (code, name, description, category) VALUES (?, ?, ?, ?) RETURNING *'
-    ).bind(finding.code, finding.name, finding.description, finding.category).first();
+    ).bind(
+      finding.code || null,
+      finding.name,
+      finding.description || null,
+      finding.category || 'General'
+    ).first();
     return result;
   }
 
   async updateFinding(id, finding) {
     const result = await this.db.prepare(
       'UPDATE findings SET code = COALESCE(?, code), name = COALESCE(?, name), description = COALESCE(?, description), category = COALESCE(?, category), updated_at = CURRENT_TIMESTAMP WHERE id = ? RETURNING *'
-    ).bind(finding.code, finding.name, finding.description, finding.category, id).first();
+    ).bind(
+      finding.code || null,
+      finding.name || null,
+      finding.description || null,
+      finding.category || null,
+      id
+    ).first();
     if (!result) throw new Error('Finding not found');
     return result;
   }
