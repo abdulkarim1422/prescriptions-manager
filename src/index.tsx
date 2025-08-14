@@ -468,6 +468,105 @@ api.delete('/drugs/:id', async (c) => {
   }
 })
 
+// Therapies endpoints
+api.get('/therapies', async (c) => {
+  if (!c.env?.DB) {
+    return c.json({ results: [], total: 0, has_more: false })
+  }
+  
+  const db = new DatabaseService(c.env.DB)
+  const query = c.req.query('q') || ''
+  const limit = parseInt(c.req.query('limit') || '20')
+  const offset = parseInt(c.req.query('offset') || '0')
+  const fields = c.req.query('fields') || 'name,active_ingredient,category'
+  const sortBy = c.req.query('sortBy') || ''
+  const sortOrder = c.req.query('sortOrder') as 'asc' | 'desc' | undefined
+  
+  if (query) {
+    const results = await db.searchTherapies(query, limit, offset, fields.split(','), sortBy, sortOrder)
+    return c.json(results)
+  } else {
+    const results = await db.getAllTherapies(limit, offset, sortBy, sortOrder)
+    return c.json(results)
+  }
+})
+
+api.get('/therapies/:id', async (c) => {
+  if (!c.env?.DB) {
+    return c.json({ error: 'Therapy not found (dev mock)' }, 404)
+  }
+  const db = new DatabaseService(c.env.DB)
+  const id = parseInt(c.req.param('id'))
+  const therapy = await db.getTherapyById(id)
+  if (!therapy) {
+    return c.json({ error: 'Therapy not found' }, 404)
+  }
+  return c.json(therapy)
+})
+
+api.post('/therapies', async (c) => {
+  const body = await c.req.json() as any
+  try {
+    if (!c.env?.DB) {
+      // Dev mock: echo back with a fake id
+      return c.json({ id: Math.floor(Math.random()*1e6), ...body, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }, 201)
+    }
+    const db = new DatabaseService(c.env.DB)
+    const therapy = await db.createTherapy(body)
+    return c.json(therapy, 201)
+  } catch (error) {
+    console.error('Create therapy error:', error)
+    return c.json({ error: 'Failed to create therapy' }, 500)
+  }
+})
+
+api.put('/therapies/:id', async (c) => {
+  const id = parseInt(c.req.param('id'))
+  const body = await c.req.json() as any
+  
+  try {
+    if (!c.env?.DB) {
+      // Dev mock: echo back updated data
+      return c.json({ id, ...body, updated_at: new Date().toISOString() }, 200)
+    }
+    
+    const db = new DatabaseService(c.env.DB)
+    const updatedTherapy = await db.updateTherapy(id, body)
+    
+    if (!updatedTherapy) {
+      return c.json({ error: 'Therapy not found' }, 404)
+    }
+    
+    return c.json(updatedTherapy, 200)
+  } catch (error) {
+    console.error('Update therapy error:', error)
+    return c.json({ error: 'Failed to update therapy' }, 500)
+  }
+})
+
+api.delete('/therapies/:id', async (c) => {
+  const id = parseInt(c.req.param('id'))
+  
+  try {
+    if (!c.env?.DB) {
+      // Dev mock: just return success
+      return c.json({ success: true }, 200)
+    }
+    
+    const db = new DatabaseService(c.env.DB)
+    const success = await db.deleteTherapy(id)
+    
+    if (!success) {
+      return c.json({ error: 'Therapy not found' }, 404)
+    }
+    
+    return c.json({ success: true }, 200)
+  } catch (error) {
+    console.error('Delete therapy error:', error)
+    return c.json({ error: 'Failed to delete therapy' }, 500)
+  }
+})
+
 // Prescriptions endpoints
 api.get('/prescriptions', async (c) => {
   const db = new DatabaseService(c.env.DB)

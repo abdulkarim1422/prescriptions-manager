@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Routes, Route, NavLink, useNavigate } from 'react-router-dom'
-import { Search, Plus, Settings, FileText, Pill, Stethoscope, ChevronDown } from 'lucide-react'
+import { Search, Plus, Settings, FileText, Pill, Stethoscope, ChevronDown, Zap } from 'lucide-react'
 import { CreateDrugModal } from './CreateDrugModal'
 import { EditDrugModal } from './EditDrugModal'
 import { ImportDrugsModal } from './ImportDrugsModal'
@@ -12,15 +12,18 @@ import { PrescriptionCard } from './PrescriptionCard'
 import { CreatePrescriptionModal } from './CreatePrescriptionModal'
 import { ConfigPanel } from './ConfigPanel'
 import { MedicationsView } from './MedicationsView'
+import { TherapiesView } from './TherapiesView'
+import { CreateTherapyModal } from './CreateTherapyModal'
 import { DiseasesView } from './DiseasesView'
 import { FindingsView } from './FindingsView'
-import { PrescriptionTemplate, Disease, Medication, Drug, SearchRequest } from '../types'
+import { PrescriptionTemplate, Disease, Medication, Drug, SearchRequest, Therapy, CreateTherapyRequest } from '../types'
 
 export function PrescriptionsApp() {
   const [searchResults, setSearchResults] = useState<any[]>([])
   const [prescriptions, setPrescriptions] = useState<PrescriptionTemplate[]>([])
   const [diseases, setDiseases] = useState<Disease[]>([])
   const [medications, setMedications] = useState<Medication[]>([])
+  const [therapies, setTherapies] = useState<Therapy[]>([])
   const [drugs, setDrugs] = useState<Drug[]>([])
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -40,6 +43,14 @@ export function PrescriptionsApp() {
   const [importingDiseases, setImportingDiseases] = useState(false)
   const [diseasesImportSummary, setDiseasesImportSummary] = useState<string | null>(null)
 
+  // Therapy-related state
+  const [showCreateTherapy, setShowCreateTherapy] = useState(false)
+  const [showImportTherapies, setShowImportTherapies] = useState(false)
+  const [showEditTherapy, setShowEditTherapy] = useState(false)
+  const [editingTherapy, setEditingTherapy] = useState<Therapy | null>(null)
+  const [importingTherapies, setImportingTherapies] = useState(false)
+  const [therapiesImportSummary, setTherapiesImportSummary] = useState<string | null>(null)
+
   useEffect(() => {
     loadInitialData()
   }, [])
@@ -49,10 +60,11 @@ export function PrescriptionsApp() {
       setLoading(true)
       
       // Load all data in parallel
-      const [prescriptionsRes, diseasesRes, medicationsRes, drugsRes, configRes] = await Promise.all([
+      const [prescriptionsRes, diseasesRes, medicationsRes, therapiesRes, drugsRes, configRes] = await Promise.all([
         fetch('/api/prescriptions'),
         fetch('/api/diseases'),
         fetch('/api/medications'),
+        fetch('/api/therapies'),
         fetch('/api/drugs'),
         fetch('/api/config/ai_enabled').catch(() => ({ ok: false }))
       ])
@@ -70,6 +82,11 @@ export function PrescriptionsApp() {
       if (medicationsRes.ok) {
         const data = await medicationsRes.json() as any
         setMedications(Array.isArray(data.results) ? data.results : [])
+      }
+
+      if (therapiesRes.ok) {
+        const data = await therapiesRes.json() as any
+        setTherapies(Array.isArray(data.results) ? data.results : [])
       }
 
       if (drugsRes.ok) {
@@ -214,6 +231,46 @@ export function PrescriptionsApp() {
       setTimeout(() => setDiseasesImportSummary(null), 10000) // Clear after 10 seconds
     }
     setShowImportDiseases(false)
+  }
+
+  // Therapy handlers
+  const handleEditTherapy = (therapy: Therapy) => {
+    setEditingTherapy(therapy)
+    setShowEditTherapy(true)
+  }
+
+  const handleDeleteTherapy = async (id: number) => {
+    try {
+      const response = await fetch(`/api/therapies/${id}`, { method: 'DELETE' })
+      if (response.ok) {
+        console.log('Therapy deleted successfully')
+      }
+    } catch (error) {
+      console.error('Failed to delete therapy:', error)
+    }
+  }
+
+  const handleTherapyUpdated = async () => {
+    setShowEditTherapy(false)
+    setEditingTherapy(null)
+  }
+
+  const handleCreateTherapy = async (therapyData: CreateTherapyRequest) => {
+    try {
+      const response = await fetch('/api/therapies', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(therapyData)
+      })
+
+      if (response.ok) {
+        setShowCreateTherapy(false)
+        setTherapiesImportSummary(`Successfully created therapy "${therapyData.name}".`)
+        setTimeout(() => setTherapiesImportSummary(null), 5000)
+      }
+    } catch (error) {
+      console.error('Failed to create therapy:', error)
+    }
   }
 
   const handleSearch = async (query: string, type: SearchRequest['type']) => {
@@ -385,6 +442,18 @@ export function PrescriptionsApp() {
     />
   )
 
+  // Therapies View Component (wrapper)
+  const TherapiesViewWrapper = () => (
+    <TherapiesView
+      onShowCreateTherapy={() => setShowCreateTherapy(true)}
+      onShowImportTherapies={() => setShowImportTherapies(true)}
+      onEditTherapy={handleEditTherapy}
+      onDeleteTherapy={handleDeleteTherapy}
+      importingTherapies={importingTherapies}
+      importSummary={therapiesImportSummary}
+    />
+  )
+
   // Settings View Component
   const SettingsView = () => (
     <div className="space-y-6">
@@ -458,19 +527,31 @@ export function PrescriptionsApp() {
                 </div>
               </div>
               
-              <NavLink
-                to="/medications"
-                className={({ isActive }) =>
-                  `px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${
-                    isActive 
-                      ? 'bg-primary-100 text-primary-700' 
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                  }`
-                }
-              >
-                <Pill size={18} />
-                Medications
-              </NavLink>
+              <div className="relative group">
+                <div className="px-4 py-2 rounded-lg flex items-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 cursor-default select-none">
+                  <Zap size={18} />
+                  Workflow
+                  <ChevronDown size={16} className="ml-1" />
+                </div>
+                <div className="absolute left-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                  <NavLink
+                    to="/medications"
+                    className={({ isActive }) =>
+                      `block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-t-lg ${isActive ? 'bg-primary-100 text-primary-700' : ''}`
+                    }
+                  >
+                    Medications
+                  </NavLink>
+                  <NavLink
+                    to="/therapies"
+                    className={({ isActive }) =>
+                      `block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-b-lg ${isActive ? 'bg-primary-100 text-primary-700' : ''}`
+                    }
+                  >
+                    Therapies
+                  </NavLink>
+                </div>
+              </div>
               
               <NavLink
                 to="/settings"
@@ -497,6 +578,7 @@ export function PrescriptionsApp() {
           <Route path="/diseases" element={<DiseasesViewWrapper />} />
           <Route path="/findings" element={<FindingsView />} />
           <Route path="/medications" element={<MedicationsViewWrapper />} />
+          <Route path="/therapies" element={<TherapiesViewWrapper />} />
           <Route path="/settings" element={<SettingsView />} />
           <Route path="*" element={<SearchView />} />
         </Routes>
@@ -563,6 +645,13 @@ export function PrescriptionsApp() {
             setEditingDisease(null)
           }}
           onSave={handleDiseaseUpdated}
+        />
+      )}
+
+      {showCreateTherapy && (
+        <CreateTherapyModal
+          onSubmit={handleCreateTherapy}
+          onClose={() => setShowCreateTherapy(false)}
         />
       )}
     </div>

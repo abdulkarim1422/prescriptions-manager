@@ -52,15 +52,30 @@ export interface Drug {
   updated_at: string;
 }
 
+export interface Therapy {
+  id: number;
+  name: string;
+  description?: string;
+  category?: string;
+  active_ingredient?: string;
+  dosage_form?: string;
+  strength?: string;
+  manufacturer?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface PrescriptionItem {
   id: number;
   prescription_template_id: number;
   medication_id: number;
+  therapy_id?: number;
   dosage: string;
   frequency: string;
   duration: string;
   instructions?: string;
   medication?: Medication; // populated via JOIN
+  therapy?: Therapy; // populated via JOIN
 }
 
 export interface DiseasePrescription {
@@ -119,7 +134,8 @@ export interface CreatePrescriptionRequest {
   name: string;
   description?: string;
   items: {
-    medication_id: number;
+    medication_id?: number;
+    therapy_id?: number;
     dosage: string;
     frequency: string;
     duration: string;
@@ -159,6 +175,16 @@ export interface CreateDrugRequest {
   description?: string;
 }
 
+export interface CreateTherapyRequest {
+  name: string;
+  description?: string;
+  category?: string;
+  active_ingredient?: string;
+  dosage_form?: string;
+  strength?: string;
+  manufacturer?: string;
+}
+
 export interface BulkImportDrugsRequest {
   items: CreateDrugRequest[];
   replace_existing?: boolean;
@@ -191,6 +217,12 @@ export interface DiseaseSelectProps {
 export interface MedicationSelectProps {
   selected: Medication[];
   onSelect: (medications: Medication[]) => void;
+  multiple?: boolean;
+}
+
+export interface TherapySelectProps {
+  selected: Therapy[];
+  onSelect: (therapies: Therapy[]) => void;
   multiple?: boolean;
 }
 

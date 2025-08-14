@@ -681,6 +681,150 @@ export class DatabaseService {
     }
   }
 
+  // Therapies operations
+  async searchTherapies(query: string, limit: number = 20, offset: number = 0, fields: string[] = ['name', 'active_ingredient', 'category'], sortBy?: string, sortOrder?: 'asc' | 'desc') {
+    const searchQuery = `%${query}%`;
+    
+    // Build WHERE clause based on selected fields
+    const whereConditions = [];
+    const bindValues = [];
+    
+    for (const field of fields) {
+      switch (field) {
+        case 'name':
+          whereConditions.push('name LIKE ?');
+          bindValues.push(searchQuery);
+          break;
+        case 'active_ingredient':
+          whereConditions.push('active_ingredient LIKE ?');
+          bindValues.push(searchQuery);
+          break;
+        case 'category':
+          whereConditions.push('category LIKE ?');
+          bindValues.push(searchQuery);
+          break;
+        case 'description':
+          whereConditions.push('description LIKE ?');
+          bindValues.push(searchQuery);
+          break;
+        case 'dosage_form':
+          whereConditions.push('dosage_form LIKE ?');
+          bindValues.push(searchQuery);
+          break;
+        case 'strength':
+          whereConditions.push('strength LIKE ?');
+          bindValues.push(searchQuery);
+          break;
+        case 'manufacturer':
+          whereConditions.push('manufacturer LIKE ?');
+          bindValues.push(searchQuery);
+          break;
+      }
+    }
+    
+    const whereClause = whereConditions.length > 0 ? whereConditions.join(' OR ') : '1=0';
+    
+    // Build ORDER BY clause with validation
+    const allowedSortFields = ['name', 'active_ingredient', 'category', 'dosage_form', 'strength', 'manufacturer', 'created_at', 'updated_at'];
+    const validSortBy = sortBy && allowedSortFields.includes(sortBy) ? sortBy : 'name';
+    const validSortOrder = sortOrder && ['asc', 'desc'].includes(sortOrder) ? sortOrder.toUpperCase() : 'ASC';
+    const orderClause = `ORDER BY ${validSortBy} ${validSortOrder}`;
+    
+    const countResult = await this.db
+      .prepare(`SELECT COUNT(*) as total FROM therapies WHERE ${whereClause}`)
+      .bind(...bindValues)
+      .first();
+
+    const results = await this.db
+      .prepare(`SELECT * FROM therapies WHERE ${whereClause} ${orderClause} LIMIT ? OFFSET ?`)
+      .bind(...bindValues, limit, offset)
+      .all();
+
+    return {
+      results: results.results,
+      total: (countResult as any)?.total || 0,
+      has_more: offset + limit < ((countResult as any)?.total || 0),
+    };
+  }
+
+  async getAllTherapies(limit?: number, offset?: number, sortBy?: string, sortOrder?: 'asc' | 'desc') {
+    // Build ORDER BY clause with validation
+    const allowedSortFields = ['name', 'active_ingredient', 'category', 'dosage_form', 'strength', 'manufacturer', 'created_at', 'updated_at'];
+    const validSortBy = sortBy && allowedSortFields.includes(sortBy) ? sortBy : 'name';
+    const validSortOrder = sortOrder && ['asc', 'desc'].includes(sortOrder) ? sortOrder.toUpperCase() : 'ASC';
+    const orderClause = `ORDER BY ${validSortBy} ${validSortOrder}`;
+    
+    if (limit === undefined) {
+      const result = await this.db.prepare(`SELECT * FROM therapies ${orderClause}`).all();
+      const therapies = result.results;
+      return {
+        results: therapies,
+        total: therapies.length,
+        has_more: false
+      };
+    }
+    
+    // Paginated version
+    const countResult = await this.db.prepare('SELECT COUNT(*) as total FROM therapies').first();
+    const result = await this.db
+      .prepare(`SELECT * FROM therapies ${orderClause} LIMIT ? OFFSET ?`)
+      .bind(limit, offset || 0)
+      .all();
+
+    return {
+      results: result.results,
+      total: (countResult as any)?.total || 0,
+      has_more: (offset || 0) + limit < ((countResult as any)?.total || 0),
+    };
+  }
+
+  async getTherapyById(id: number) {
+    const result = await this.db.prepare('SELECT * FROM therapies WHERE id = ?').bind(id).first();
+    return result || null;
+  }
+
+  async createTherapy(therapy: any) {
+    const result = await this.db.prepare(
+      'INSERT INTO therapies (name, description, category, active_ingredient, dosage_form, strength, manufacturer) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING *'
+    ).bind(
+      therapy.name,
+      therapy.description || null,
+      therapy.category || 'General',
+      therapy.active_ingredient || null,
+      therapy.dosage_form || null,
+      therapy.strength || null,
+      therapy.manufacturer || null
+    ).first();
+    return result;
+  }
+
+  async updateTherapy(id: number, therapy: any) {
+    const result = await this.db.prepare(
+      'UPDATE therapies SET name = COALESCE(?, name), description = COALESCE(?, description), category = COALESCE(?, category), active_ingredient = COALESCE(?, active_ingredient), dosage_form = COALESCE(?, dosage_form), strength = COALESCE(?, strength), manufacturer = COALESCE(?, manufacturer), updated_at = CURRENT_TIMESTAMP WHERE id = ? RETURNING *'
+    ).bind(
+      therapy.name || null,
+      therapy.description || null,
+      therapy.category || null,
+      therapy.active_ingredient || null,
+      therapy.dosage_form || null,
+      therapy.strength || null,
+      therapy.manufacturer || null,
+      id
+    ).first();
+    if (!result) throw new Error('Therapy not found');
+    return result;
+  }
+
+  async deleteTherapy(id: number): Promise<boolean> {
+    try {
+      const result = await this.db.prepare('DELETE FROM therapies WHERE id = ?').bind(id).run();
+      return result.success;
+    } catch (error) {
+      console.error('Delete therapy error:', error);
+      throw error;
+    }
+  }
+
   // Prescription template operations
   async searchPrescriptions(query: string, limit: number = 20, offset: number = 0): Promise<SearchResponse<PrescriptionTemplate>> {
     const searchQuery = `%${query}%`;
@@ -742,10 +886,11 @@ export class DatabaseService {
     // Add prescription items
     for (const item of items) {
       await this.db.prepare(
-        'INSERT INTO prescription_items (prescription_template_id, medication_id, dosage, frequency, duration, instructions) VALUES (?, ?, ?, ?, ?, ?)'
+        'INSERT INTO prescription_items (prescription_template_id, medication_id, therapy_id, dosage, frequency, duration, instructions) VALUES (?, ?, ?, ?, ?, ?, ?)'
       ).bind(
         prescription.id,
-        item.medication_id,
+        item.medication_id || null,
+        item.therapy_id || null,
         item.dosage,
         item.frequency,
         item.duration,

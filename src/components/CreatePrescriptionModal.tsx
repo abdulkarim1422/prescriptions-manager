@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { X, Plus, Trash2 } from 'lucide-react'
-import { Disease, CreatePrescriptionRequest } from '../types'
+import { Disease, CreatePrescriptionRequest, Therapy } from '../types'
 import { DrugSearch } from './DrugSearch'
+import { TherapySearch } from './TherapySearch'
 import { DiseaseSearch } from './DiseaseSearch'
 import { FindingsSearch } from './FindingsSearch'
 import { Finding } from './FindingsView'
@@ -13,8 +14,11 @@ interface CreatePrescriptionModalProps {
 }
 
 interface PrescriptionItem {
-  medication_id: number
-  medication_name: string
+  medication_id?: number
+  therapy_id?: number
+  medication_name?: string
+  therapy_name?: string
+  item_type: 'medication' | 'therapy'
   dosage: string
   frequency: string
   duration: string
@@ -27,6 +31,7 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
   const [items, setItems] = useState<PrescriptionItem[]>([{
     medication_id: 0,
     medication_name: '',
+    item_type: 'medication',
     dosage: '',
     frequency: '',
     duration: '',
@@ -41,6 +46,7 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
     setItems([...items, {
       medication_id: 0,
       medication_name: '',
+      item_type: 'medication',
       dosage: '',
       frequency: '',
       duration: '',
@@ -65,7 +71,23 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
     updatedItems[index] = { 
       ...updatedItems[index], 
       medication_id: drugId,
-      medication_name: drugName
+      medication_name: drugName,
+      therapy_id: undefined,
+      therapy_name: undefined,
+      item_type: 'medication'
+    }
+    setItems(updatedItems)
+  }
+
+  const handleTherapySelect = (index: number, therapyId: number, therapyName: string) => {
+    const updatedItems = [...items]
+    updatedItems[index] = { 
+      ...updatedItems[index], 
+      therapy_id: therapyId,
+      therapy_name: therapyName,
+      medication_id: undefined,
+      medication_name: undefined,
+      item_type: 'therapy'
     }
     setItems(updatedItems)
   }
@@ -97,7 +119,8 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
     }
 
     const validItems = items.filter(item => 
-      item.medication_id > 0 && 
+      (item.item_type === 'medication' && (item.medication_id || 0) > 0) ||
+      (item.item_type === 'therapy' && (item.therapy_id || 0) > 0) &&
       item.dosage.trim() && 
       item.frequency.trim() && 
       item.duration.trim()
@@ -111,7 +134,14 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
     onSubmit({
       name: name.trim(),
       description: description.trim() || undefined,
-      items: validItems,
+      items: validItems.map(item => ({
+        medication_id: item.item_type === 'medication' ? item.medication_id : undefined,
+        therapy_id: item.item_type === 'therapy' ? item.therapy_id : undefined,
+        dosage: item.dosage,
+        frequency: item.frequency,
+        duration: item.duration,
+        instructions: item.instructions
+      })),
       disease_ids: selectedDiseases.length > 0 ? selectedDiseases : undefined,
       finding_ids: selectedFindings.length > 0 ? selectedFindings : undefined
     })
@@ -191,14 +221,38 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Medication *
+                        Type *
                       </label>
-                      <DrugSearch
-                        selectedDrugId={item.medication_id}
-                        onDrugSelect={(drugId, drugName) => handleDrugSelect(index, drugId, drugName)}
-                        placeholder="Search for a drug (min 3 characters)..."
+                      <select
+                        value={item.item_type}
+                        onChange={(e) => handleItemChange(index, 'item_type', e.target.value as 'medication' | 'therapy')}
+                        className="input-field"
                         required
-                      />
+                      >
+                        <option value="medication">Medication</option>
+                        <option value="therapy">Therapy</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        {item.item_type === 'medication' ? 'Medication' : 'Therapy'} *
+                      </label>
+                      {item.item_type === 'medication' ? (
+                        <DrugSearch
+                          selectedDrugId={item.medication_id || 0}
+                          onDrugSelect={(drugId, drugName) => handleDrugSelect(index, drugId, drugName)}
+                          placeholder="Search for a drug (min 3 characters)..."
+                          required
+                        />
+                      ) : (
+                        <TherapySearch
+                          selectedTherapyId={item.therapy_id || 0}
+                          onTherapySelect={(therapyId, therapyName) => handleTherapySelect(index, therapyId, therapyName)}
+                          placeholder="Search for a therapy (min 3 characters)..."
+                          required
+                        />
+                      )}
                     </div>
 
                     <div>

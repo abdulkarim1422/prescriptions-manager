@@ -51,6 +51,20 @@ CREATE TABLE IF NOT EXISTS drugs (
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Create therapies table
+CREATE TABLE IF NOT EXISTS therapies (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    description TEXT,
+    category TEXT DEFAULT 'General',
+    active_ingredient TEXT,
+    dosage_form TEXT,
+    strength TEXT,
+    manufacturer TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Create prescription templates table
 CREATE TABLE IF NOT EXISTS prescription_templates (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -67,12 +81,14 @@ CREATE TABLE IF NOT EXISTS prescription_items (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     prescription_template_id INTEGER NOT NULL,
     medication_id INTEGER NOT NULL,
+    therapy_id INTEGER,
     dosage TEXT NOT NULL,
     frequency TEXT NOT NULL,
     duration TEXT NOT NULL,
     instructions TEXT,
     FOREIGN KEY (prescription_template_id) REFERENCES prescription_templates(id) ON DELETE CASCADE,
-    FOREIGN KEY (medication_id) REFERENCES drugs(id) ON DELETE RESTRICT
+    FOREIGN KEY (medication_id) REFERENCES drugs(id) ON DELETE RESTRICT,
+    FOREIGN KEY (therapy_id) REFERENCES therapies(id) ON DELETE RESTRICT
 );
 
 -- Create disease prescriptions association table
@@ -140,8 +156,13 @@ CREATE INDEX IF NOT EXISTS idx_drugs_barcode ON drugs(barcode);
 CREATE INDEX IF NOT EXISTS idx_drugs_atc_code ON drugs(atc_code);
 CREATE INDEX IF NOT EXISTS idx_drugs_product_name ON drugs(product_name);
 
+CREATE INDEX IF NOT EXISTS idx_therapies_name ON therapies(name);
+CREATE INDEX IF NOT EXISTS idx_therapies_category ON therapies(category);
+CREATE INDEX IF NOT EXISTS idx_therapies_active_ingredient ON therapies(active_ingredient);
+
 CREATE INDEX IF NOT EXISTS idx_prescription_items_template_id ON prescription_items(prescription_template_id);
 CREATE INDEX IF NOT EXISTS idx_prescription_items_medication_id ON prescription_items(medication_id);
+CREATE INDEX IF NOT EXISTS idx_prescription_items_therapy_id ON prescription_items(therapy_id);
 
 CREATE INDEX IF NOT EXISTS idx_disease_prescriptions_disease_id ON disease_prescriptions(disease_id);
 CREATE INDEX IF NOT EXISTS idx_disease_prescriptions_template_id ON disease_prescriptions(prescription_template_id);
