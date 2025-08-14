@@ -3,6 +3,8 @@ import { X, Plus, Trash2 } from 'lucide-react'
 import { Disease, CreatePrescriptionRequest, Therapy } from '../types'
 import { DrugSearch } from './DrugSearch'
 import { TherapySearch } from './TherapySearch'
+import { DrugAddSearch } from './DrugAddSearch'
+import { TherapyAddSearch } from './TherapyAddSearch'
 import { DiseaseSearch } from './DiseaseSearch'
 import { FindingsSearch } from './FindingsSearch'
 import { Finding } from './FindingsView'
@@ -34,40 +36,35 @@ interface TherapyItem {
 export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreatePrescriptionModalProps) {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
-  const [medications, setMedications] = useState<PrescriptionItem[]>([{
-    medication_id: 0,
-    medication_name: '',
-    dosage: '',
-    frequency: '',
-    duration: '',
-    instructions: ''
-  }])
+  const [medications, setMedications] = useState<PrescriptionItem[]>([])
   const [therapies, setTherapies] = useState<TherapyItem[]>([])
   const [selectedDiseases, setSelectedDiseases] = useState<number[]>([])
   const [selectedDiseaseObjects, setSelectedDiseaseObjects] = useState<Disease[]>([])
   const [selectedFindings, setSelectedFindings] = useState<number[]>([])
   const [selectedFindingObjects, setSelectedFindingObjects] = useState<Finding[]>([])
 
-  const handleAddMedication = () => {
-    setMedications([...medications, {
-      medication_id: 0,
-      medication_name: '',
+  const handleAddMedicationFromSearch = (drugId: number, drugName: string) => {
+    const newMedication: PrescriptionItem = {
+      medication_id: drugId,
+      medication_name: drugName,
       dosage: '',
       frequency: '',
       duration: '',
       instructions: ''
-    }])
+    }
+    setMedications([...medications, newMedication])
   }
 
-  const handleAddTherapy = () => {
-    setTherapies([...therapies, {
-      therapy_id: 0,
-      therapy_name: '',
+  const handleAddTherapyFromSearch = (therapyId: number, therapyName: string) => {
+    const newTherapy: TherapyItem = {
+      therapy_id: therapyId,
+      therapy_name: therapyName,
       procedure: '',
       timing: '',
       duration: '',
       instructions: ''
-    }])
+    }
+    setTherapies([...therapies, newTherapy])
   }
 
   const handleRemoveMedication = (index: number) => {
@@ -229,27 +226,23 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
 
           {/* Medications Section */}
           <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <div>
+            <div>
+              <div className="flex items-center gap-2 mb-2">
                 <h3 className="text-lg font-medium">Medications</h3>
-                <p className="text-sm text-gray-600">Drugs to be dispensed from pharmacy</p>
+                <span className="text-sm text-gray-600">• Drugs to be dispensed from pharmacy</span>
               </div>
-              <button
-                type="button"
-                onClick={handleAddMedication}
-                className="btn-secondary flex items-center gap-2"
-              >
-                <Plus size={16} />
-                Add Medication
-              </button>
+              <DrugAddSearch
+                onDrugAdd={handleAddMedicationFromSearch}
+                placeholder="Search and add medications..."
+              />
             </div>
 
-            <div className="space-y-4">
-              {medications.map((medication, index) => (
-                <div key={index} className="p-4 border border-gray-200 rounded-lg space-y-3">
-                  <div className="flex justify-between items-center">
-                    <h4 className="font-medium">Medication {index + 1}</h4>
-                    {medications.length > 1 && (
+            {medications.length > 0 && (
+              <div className="space-y-4">
+                {medications.map((medication, index) => (
+                  <div key={index} className="p-4 border border-gray-200 rounded-lg space-y-3">
+                    <div className="flex justify-between items-center">
+                      <h4 className="font-medium">{medication.medication_name}</h4>
                       <button
                         type="button"
                         onClick={() => handleRemoveMedication(index)}
@@ -257,97 +250,81 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
                       >
                         <Trash2 size={16} />
                       </button>
-                    )}
-                  </div>
+                    </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Drug *
-                      </label>
-                      <DrugSearch
-                        selectedDrugId={medication.medication_id || 0}
-                        onDrugSelect={(drugId, drugName) => handleDrugSelect(index, drugId, drugName)}
-                        placeholder="Search for a drug (min 3 characters)..."
-                        required
-                      />
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Dosage *
+                        </label>
+                        <input
+                          type="text"
+                          value={medication.dosage}
+                          onChange={(e) => handleMedicationChange(index, 'dosage', e.target.value)}
+                          className="input-field"
+                          placeholder="e.g., 1 tablet, 5ml"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Frequency *
+                        </label>
+                        <input
+                          type="text"
+                          value={medication.frequency}
+                          onChange={(e) => handleMedicationChange(index, 'frequency', e.target.value)}
+                          className="input-field"
+                          placeholder="e.g., Twice daily"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Duration *
+                        </label>
+                        <input
+                          type="text"
+                          value={medication.duration}
+                          onChange={(e) => handleMedicationChange(index, 'duration', e.target.value)}
+                          className="input-field"
+                          placeholder="e.g., 7 days"
+                          required
+                        />
+                      </div>
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Dosage *
+                        Special Instructions
                       </label>
                       <input
                         type="text"
-                        value={medication.dosage}
-                        onChange={(e) => handleMedicationChange(index, 'dosage', e.target.value)}
+                        value={medication.instructions || ''}
+                        onChange={(e) => handleMedicationChange(index, 'instructions', e.target.value)}
                         className="input-field"
-                        placeholder="e.g., 1 tablet, 5ml"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Frequency *
-                      </label>
-                      <input
-                        type="text"
-                        value={medication.frequency}
-                        onChange={(e) => handleMedicationChange(index, 'frequency', e.target.value)}
-                        className="input-field"
-                        placeholder="e.g., Twice daily, Every 8 hours"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Duration *
-                      </label>
-                      <input
-                        type="text"
-                        value={medication.duration}
-                        onChange={(e) => handleMedicationChange(index, 'duration', e.target.value)}
-                        className="input-field"
-                        placeholder="e.g., 7 days, 2 weeks"
-                        required
+                        placeholder="e.g., Take with food, Before bedtime"
                       />
                     </div>
                   </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Special Instructions
-                    </label>
-                    <input
-                      type="text"
-                      value={medication.instructions || ''}
-                      onChange={(e) => handleMedicationChange(index, 'instructions', e.target.value)}
-                      className="input-field"
-                      placeholder="e.g., Take with food, Before bedtime"
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Therapies Section */}
           <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <div>
+            <div>
+              <div className="flex items-center gap-2 mb-2">
                 <h3 className="text-lg font-medium">Immediate Therapies</h3>
-                <p className="text-sm text-gray-600">Treatments to be performed immediately in hospital</p>
+                <span className="text-sm text-gray-600">• Treatments performed immediately in hospital</span>
               </div>
-              <button
-                type="button"
-                onClick={handleAddTherapy}
-                className="btn-secondary flex items-center gap-2"
-              >
-                <Plus size={16} />
-                Add Therapy
-              </button>
+              <TherapyAddSearch
+                onTherapyAdd={handleAddTherapyFromSearch}
+                placeholder="Search and add therapies..."
+              />
             </div>
 
             {therapies.length > 0 && (
@@ -355,7 +332,7 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
                 {therapies.map((therapy, index) => (
                   <div key={index} className="p-4 border border-blue-200 bg-blue-50 rounded-lg space-y-3">
                     <div className="flex justify-between items-center">
-                      <h4 className="font-medium text-blue-800">Therapy {index + 1}</h4>
+                      <h4 className="font-medium text-blue-800">{therapy.therapy_name}</h4>
                       <button
                         type="button"
                         onClick={() => handleRemoveTherapy(index)}
@@ -365,19 +342,7 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
                       </button>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-sm font-medium text-blue-700 mb-1">
-                          Therapy *
-                        </label>
-                        <TherapySearch
-                          selectedTherapyId={therapy.therapy_id || 0}
-                          onTherapySelect={(therapyId, therapyName) => handleTherapySelect(index, therapyId, therapyName)}
-                          placeholder="Search for a therapy (min 3 characters)..."
-                          required
-                        />
-                      </div>
-
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                       <div>
                         <label className="block text-sm font-medium text-blue-700 mb-1">
                           Procedure *
@@ -387,7 +352,7 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
                           value={therapy.procedure}
                           onChange={(e) => handleTherapyChange(index, 'procedure', e.target.value)}
                           className="input-field"
-                          placeholder="e.g., IV injection, Nebulization"
+                          placeholder="e.g., IV injection"
                           required
                         />
                       </div>
@@ -401,7 +366,7 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
                           value={therapy.timing}
                           onChange={(e) => handleTherapyChange(index, 'timing', e.target.value)}
                           className="input-field"
-                          placeholder="e.g., Immediately, Every 4 hours"
+                          placeholder="e.g., Immediately"
                           required
                         />
                       </div>
@@ -415,7 +380,7 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
                           value={therapy.duration}
                           onChange={(e) => handleTherapyChange(index, 'duration', e.target.value)}
                           className="input-field"
-                          placeholder="e.g., Single dose, 30 minutes"
+                          placeholder="e.g., Single dose"
                           required
                         />
                       </div>
@@ -430,7 +395,7 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
                         value={therapy.instructions || ''}
                         onChange={(e) => handleTherapyChange(index, 'instructions', e.target.value)}
                         className="input-field"
-                        placeholder="e.g., Monitor vital signs, Patient positioning"
+                        placeholder="e.g., Monitor vital signs"
                       />
                     </div>
                   </div>
