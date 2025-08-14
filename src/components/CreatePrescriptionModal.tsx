@@ -240,7 +240,7 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
             {medications.length > 0 && (
               <div className="space-y-4">
                 {medications.map((medication, index) => (
-                  <div key={index} className="p-4 border border-green-200 bg-green-50 rounded-lg space-y-3">
+                  <div key={index} className="p-4 border border-green-300 bg-green-100 rounded-lg space-y-3">
                     <div className="flex justify-between items-center">
                       <h4 className="font-medium text-green-800">{medication.medication_name}</h4>
                       <button
@@ -330,7 +330,7 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
             {therapies.length > 0 && (
               <div className="space-y-4">
                 {therapies.map((therapy, index) => (
-                  <div key={index} className="p-4 border border-blue-200 bg-blue-50 rounded-lg space-y-3">
+                  <div key={index} className="p-4 border border-blue-300 bg-blue-100 rounded-lg space-y-3">
                     <div className="flex justify-between items-center">
                       <h4 className="font-medium text-blue-800">{therapy.therapy_name}</h4>
                       <button
