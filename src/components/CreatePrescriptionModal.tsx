@@ -15,12 +15,18 @@ interface CreatePrescriptionModalProps {
 
 interface PrescriptionItem {
   medication_id?: number
-  therapy_id?: number
   medication_name?: string
-  therapy_name?: string
-  item_type: 'medication' | 'therapy'
   dosage: string
   frequency: string
+  duration: string
+  instructions?: string
+}
+
+interface TherapyItem {
+  therapy_id?: number
+  therapy_name?: string
+  procedure: string
+  timing: string
   duration: string
   instructions?: string
 }
@@ -28,25 +34,24 @@ interface PrescriptionItem {
 export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreatePrescriptionModalProps) {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
-  const [items, setItems] = useState<PrescriptionItem[]>([{
+  const [medications, setMedications] = useState<PrescriptionItem[]>([{
     medication_id: 0,
     medication_name: '',
-    item_type: 'medication',
     dosage: '',
     frequency: '',
     duration: '',
     instructions: ''
   }])
+  const [therapies, setTherapies] = useState<TherapyItem[]>([])
   const [selectedDiseases, setSelectedDiseases] = useState<number[]>([])
   const [selectedDiseaseObjects, setSelectedDiseaseObjects] = useState<Disease[]>([])
   const [selectedFindings, setSelectedFindings] = useState<number[]>([])
   const [selectedFindingObjects, setSelectedFindingObjects] = useState<Finding[]>([])
 
-  const handleAddItem = () => {
-    setItems([...items, {
+  const handleAddMedication = () => {
+    setMedications([...medications, {
       medication_id: 0,
       medication_name: '',
-      item_type: 'medication',
       dosage: '',
       frequency: '',
       duration: '',
@@ -54,42 +59,57 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
     }])
   }
 
-  const handleRemoveItem = (index: number) => {
-    if (items.length > 1) {
-      setItems(items.filter((_, i) => i !== index))
+  const handleAddTherapy = () => {
+    setTherapies([...therapies, {
+      therapy_id: 0,
+      therapy_name: '',
+      procedure: '',
+      timing: '',
+      duration: '',
+      instructions: ''
+    }])
+  }
+
+  const handleRemoveMedication = (index: number) => {
+    if (medications.length > 1) {
+      setMedications(medications.filter((_, i) => i !== index))
     }
   }
 
-  const handleItemChange = (index: number, field: keyof PrescriptionItem, value: string | number) => {
-    const updatedItems = [...items]
-    updatedItems[index] = { ...updatedItems[index], [field]: value }
-    setItems(updatedItems)
+  const handleRemoveTherapy = (index: number) => {
+    setTherapies(therapies.filter((_, i) => i !== index))
+  }
+
+  const handleMedicationChange = (index: number, field: keyof PrescriptionItem, value: string | number) => {
+    const updatedMedications = [...medications]
+    updatedMedications[index] = { ...updatedMedications[index], [field]: value }
+    setMedications(updatedMedications)
+  }
+
+  const handleTherapyChange = (index: number, field: keyof TherapyItem, value: string | number) => {
+    const updatedTherapies = [...therapies]
+    updatedTherapies[index] = { ...updatedTherapies[index], [field]: value }
+    setTherapies(updatedTherapies)
   }
 
   const handleDrugSelect = (index: number, drugId: number, drugName: string) => {
-    const updatedItems = [...items]
-    updatedItems[index] = { 
-      ...updatedItems[index], 
+    const updatedMedications = [...medications]
+    updatedMedications[index] = { 
+      ...updatedMedications[index], 
       medication_id: drugId,
-      medication_name: drugName,
-      therapy_id: undefined,
-      therapy_name: undefined,
-      item_type: 'medication'
+      medication_name: drugName
     }
-    setItems(updatedItems)
+    setMedications(updatedMedications)
   }
 
   const handleTherapySelect = (index: number, therapyId: number, therapyName: string) => {
-    const updatedItems = [...items]
-    updatedItems[index] = { 
-      ...updatedItems[index], 
+    const updatedTherapies = [...therapies]
+    updatedTherapies[index] = { 
+      ...updatedTherapies[index], 
       therapy_id: therapyId,
-      therapy_name: therapyName,
-      medication_id: undefined,
-      medication_name: undefined,
-      item_type: 'therapy'
+      therapy_name: therapyName
     }
-    setItems(updatedItems)
+    setTherapies(updatedTherapies)
   }
 
   const handleDiseaseToggle = (diseaseId: number) => {
@@ -118,30 +138,49 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
       return
     }
 
-    const validItems = items.filter(item => 
-      (item.item_type === 'medication' && (item.medication_id || 0) > 0) ||
-      (item.item_type === 'therapy' && (item.therapy_id || 0) > 0) &&
-      item.dosage.trim() && 
-      item.frequency.trim() && 
-      item.duration.trim()
+    const validMedications = medications.filter(med => 
+      (med.medication_id || 0) > 0 && 
+      med.dosage.trim() && 
+      med.frequency.trim() && 
+      med.duration.trim()
     )
 
-    if (validItems.length === 0) {
-      alert('Please add at least one valid medication')
+    const validTherapies = therapies.filter(therapy => 
+      (therapy.therapy_id || 0) > 0 && 
+      therapy.procedure.trim() && 
+      therapy.timing.trim() && 
+      therapy.duration.trim()
+    )
+
+    if (validMedications.length === 0 && validTherapies.length === 0) {
+      alert('Please add at least one medication or therapy')
       return
     }
+
+    // Combine medications and therapies into the items array
+    const allItems = [
+      ...validMedications.map(med => ({
+        medication_id: med.medication_id,
+        therapy_id: undefined,
+        dosage: med.dosage,
+        frequency: med.frequency,
+        duration: med.duration,
+        instructions: med.instructions
+      })),
+      ...validTherapies.map(therapy => ({
+        medication_id: undefined,
+        therapy_id: therapy.therapy_id,
+        dosage: therapy.procedure, // Use procedure as dosage equivalent
+        frequency: therapy.timing, // Use timing as frequency equivalent
+        duration: therapy.duration,
+        instructions: therapy.instructions
+      }))
+    ]
 
     onSubmit({
       name: name.trim(),
       description: description.trim() || undefined,
-      items: validItems.map(item => ({
-        medication_id: item.item_type === 'medication' ? item.medication_id : undefined,
-        therapy_id: item.item_type === 'therapy' ? item.therapy_id : undefined,
-        dosage: item.dosage,
-        frequency: item.frequency,
-        duration: item.duration,
-        instructions: item.instructions
-      })),
+      items: allItems,
       disease_ids: selectedDiseases.length > 0 ? selectedDiseases : undefined,
       finding_ids: selectedFindings.length > 0 ? selectedFindings : undefined
     })
@@ -188,13 +227,16 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
             </div>
           </div>
 
-          {/* Medications */}
+          {/* Medications Section */}
           <div className="space-y-4">
             <div className="flex justify-between items-center">
-              <h3 className="text-lg font-medium">Medications</h3>
+              <div>
+                <h3 className="text-lg font-medium">Medications</h3>
+                <p className="text-sm text-gray-600">Drugs to be dispensed from pharmacy</p>
+              </div>
               <button
                 type="button"
-                onClick={handleAddItem}
+                onClick={handleAddMedication}
                 className="btn-secondary flex items-center gap-2"
               >
                 <Plus size={16} />
@@ -203,14 +245,14 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
             </div>
 
             <div className="space-y-4">
-              {items.map((item, index) => (
+              {medications.map((medication, index) => (
                 <div key={index} className="p-4 border border-gray-200 rounded-lg space-y-3">
                   <div className="flex justify-between items-center">
                     <h4 className="font-medium">Medication {index + 1}</h4>
-                    {items.length > 1 && (
+                    {medications.length > 1 && (
                       <button
                         type="button"
-                        onClick={() => handleRemoveItem(index)}
+                        onClick={() => handleRemoveMedication(index)}
                         className="text-red-500 hover:text-red-700"
                       >
                         <Trash2 size={16} />
@@ -221,38 +263,14 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Type *
+                        Drug *
                       </label>
-                      <select
-                        value={item.item_type}
-                        onChange={(e) => handleItemChange(index, 'item_type', e.target.value as 'medication' | 'therapy')}
-                        className="input-field"
+                      <DrugSearch
+                        selectedDrugId={medication.medication_id || 0}
+                        onDrugSelect={(drugId, drugName) => handleDrugSelect(index, drugId, drugName)}
+                        placeholder="Search for a drug (min 3 characters)..."
                         required
-                      >
-                        <option value="medication">Medication</option>
-                        <option value="therapy">Therapy</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        {item.item_type === 'medication' ? 'Medication' : 'Therapy'} *
-                      </label>
-                      {item.item_type === 'medication' ? (
-                        <DrugSearch
-                          selectedDrugId={item.medication_id || 0}
-                          onDrugSelect={(drugId, drugName) => handleDrugSelect(index, drugId, drugName)}
-                          placeholder="Search for a drug (min 3 characters)..."
-                          required
-                        />
-                      ) : (
-                        <TherapySearch
-                          selectedTherapyId={item.therapy_id || 0}
-                          onTherapySelect={(therapyId, therapyName) => handleTherapySelect(index, therapyId, therapyName)}
-                          placeholder="Search for a therapy (min 3 characters)..."
-                          required
-                        />
-                      )}
+                      />
                     </div>
 
                     <div>
@@ -261,8 +279,8 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
                       </label>
                       <input
                         type="text"
-                        value={item.dosage}
-                        onChange={(e) => handleItemChange(index, 'dosage', e.target.value)}
+                        value={medication.dosage}
+                        onChange={(e) => handleMedicationChange(index, 'dosage', e.target.value)}
                         className="input-field"
                         placeholder="e.g., 1 tablet, 5ml"
                         required
@@ -275,8 +293,8 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
                       </label>
                       <input
                         type="text"
-                        value={item.frequency}
-                        onChange={(e) => handleItemChange(index, 'frequency', e.target.value)}
+                        value={medication.frequency}
+                        onChange={(e) => handleMedicationChange(index, 'frequency', e.target.value)}
                         className="input-field"
                         placeholder="e.g., Twice daily, Every 8 hours"
                         required
@@ -289,8 +307,8 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
                       </label>
                       <input
                         type="text"
-                        value={item.duration}
-                        onChange={(e) => handleItemChange(index, 'duration', e.target.value)}
+                        value={medication.duration}
+                        onChange={(e) => handleMedicationChange(index, 'duration', e.target.value)}
                         className="input-field"
                         placeholder="e.g., 7 days, 2 weeks"
                         required
@@ -304,8 +322,8 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
                     </label>
                     <input
                       type="text"
-                      value={item.instructions || ''}
-                      onChange={(e) => handleItemChange(index, 'instructions', e.target.value)}
+                      value={medication.instructions || ''}
+                      onChange={(e) => handleMedicationChange(index, 'instructions', e.target.value)}
                       className="input-field"
                       placeholder="e.g., Take with food, Before bedtime"
                     />
@@ -313,6 +331,112 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* Therapies Section */}
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <h3 className="text-lg font-medium">Immediate Therapies</h3>
+                <p className="text-sm text-gray-600">Treatments to be performed immediately in hospital</p>
+              </div>
+              <button
+                type="button"
+                onClick={handleAddTherapy}
+                className="btn-secondary flex items-center gap-2"
+              >
+                <Plus size={16} />
+                Add Therapy
+              </button>
+            </div>
+
+            {therapies.length > 0 && (
+              <div className="space-y-4">
+                {therapies.map((therapy, index) => (
+                  <div key={index} className="p-4 border border-blue-200 bg-blue-50 rounded-lg space-y-3">
+                    <div className="flex justify-between items-center">
+                      <h4 className="font-medium text-blue-800">Therapy {index + 1}</h4>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveTherapy(index)}
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-sm font-medium text-blue-700 mb-1">
+                          Therapy *
+                        </label>
+                        <TherapySearch
+                          selectedTherapyId={therapy.therapy_id || 0}
+                          onTherapySelect={(therapyId, therapyName) => handleTherapySelect(index, therapyId, therapyName)}
+                          placeholder="Search for a therapy (min 3 characters)..."
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-blue-700 mb-1">
+                          Procedure *
+                        </label>
+                        <input
+                          type="text"
+                          value={therapy.procedure}
+                          onChange={(e) => handleTherapyChange(index, 'procedure', e.target.value)}
+                          className="input-field"
+                          placeholder="e.g., IV injection, Nebulization"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-blue-700 mb-1">
+                          Timing *
+                        </label>
+                        <input
+                          type="text"
+                          value={therapy.timing}
+                          onChange={(e) => handleTherapyChange(index, 'timing', e.target.value)}
+                          className="input-field"
+                          placeholder="e.g., Immediately, Every 4 hours"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-blue-700 mb-1">
+                          Duration *
+                        </label>
+                        <input
+                          type="text"
+                          value={therapy.duration}
+                          onChange={(e) => handleTherapyChange(index, 'duration', e.target.value)}
+                          className="input-field"
+                          placeholder="e.g., Single dose, 30 minutes"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-blue-700 mb-1">
+                        Special Instructions
+                      </label>
+                      <input
+                        type="text"
+                        value={therapy.instructions || ''}
+                        onChange={(e) => handleTherapyChange(index, 'instructions', e.target.value)}
+                        className="input-field"
+                        placeholder="e.g., Monitor vital signs, Patient positioning"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Associated Diseases */}
