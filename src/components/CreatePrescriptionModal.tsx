@@ -225,11 +225,11 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
           </div>
 
           {/* Medications Section */}
-          <div className="space-y-4">
+          <div className="p-6 bg-green-50 border border-green-200 rounded-lg space-y-4">
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <h3 className="text-lg font-medium">Medications</h3>
-                <span className="text-sm text-gray-600">• Drugs to be dispensed from pharmacy</span>
+                <h3 className="text-lg font-medium text-green-800">Medications</h3>
+                <span className="text-sm text-green-600">• Drugs to be dispensed from pharmacy</span>
               </div>
               <DrugAddSearch
                 onDrugAdd={handleAddMedicationFromSearch}
@@ -240,9 +240,9 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
             {medications.length > 0 && (
               <div className="space-y-4">
                 {medications.map((medication, index) => (
-                  <div key={index} className="p-4 border border-gray-200 rounded-lg space-y-3">
+                  <div key={index} className="p-4 border border-green-200 bg-green-50 rounded-lg space-y-3">
                     <div className="flex justify-between items-center">
-                      <h4 className="font-medium">{medication.medication_name}</h4>
+                      <h4 className="font-medium text-green-800">{medication.medication_name}</h4>
                       <button
                         type="button"
                         onClick={() => handleRemoveMedication(index)}
@@ -254,7 +254,7 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-green-700 mb-1">
                           Dosage *
                         </label>
                         <input
@@ -268,7 +268,7 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-green-700 mb-1">
                           Frequency *
                         </label>
                         <input
@@ -282,7 +282,7 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-green-700 mb-1">
                           Duration *
                         </label>
                         <input
@@ -297,7 +297,7 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-green-700 mb-1">
                         Special Instructions
                       </label>
                       <input
@@ -315,11 +315,11 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
           </div>
 
           {/* Therapies Section */}
-          <div className="space-y-4">
+          <div className="p-6 bg-blue-50 border border-blue-200 rounded-lg space-y-4">
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <h3 className="text-lg font-medium">Immediate Therapies</h3>
-                <span className="text-sm text-gray-600">• Treatments performed immediately in hospital</span>
+                <h3 className="text-lg font-medium text-blue-800">Immediate Therapies</h3>
+                <span className="text-sm text-blue-600">• Treatments performed immediately in hospital</span>
               </div>
               <TherapyAddSearch
                 onTherapyAdd={handleAddTherapyFromSearch}
@@ -405,9 +405,9 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
           </div>
 
           {/* Associated Diseases */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium">Associated Diseases/Conditions (Optional)</h3>
-            <p className="text-sm text-gray-600">
+          <div className="p-6 bg-purple-50 border border-purple-200 rounded-lg space-y-4">
+            <h3 className="text-lg font-medium text-purple-800">Associated Diseases/Conditions (Optional)</h3>
+            <p className="text-sm text-purple-600">
               Search and select diseases or conditions that this prescription template is commonly used for.
             </p>
             <DiseaseSearch
@@ -420,9 +420,9 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
           </div>
 
           {/* Associated Findings */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium">Associated Findings (Optional)</h3>
-            <p className="text-sm text-gray-600">
+          <div className="p-6 bg-orange-50 border border-orange-200 rounded-lg space-y-4">
+            <h3 className="text-lg font-medium text-orange-800">Associated Findings (Optional)</h3>
+            <p className="text-sm text-orange-600">
               Search and select clinical findings that this prescription template is commonly used for.
             </p>
             <FindingsSearch
