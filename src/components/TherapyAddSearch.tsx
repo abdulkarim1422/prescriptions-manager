@@ -111,27 +111,11 @@ export function TherapyAddSearch({ onTherapyAdd, placeholder = "Search and add t
       {/* Search results */}
       {isOpen && (searchResults.length > 0 || (onAddNew && searchQuery.length >= 3)) && (
         <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
-          {/* Add new option */}
-          {onAddNew && searchQuery.length >= 3 && (
-            <button
-              type="button"
-              className="w-full text-left px-4 py-3 hover:bg-blue-50 border-b border-gray-100 focus:outline-none focus:bg-blue-50 flex items-center justify-between"
-              onClick={() => {
-                onAddNew(searchQuery)
-                setSearchQuery('')
-                setIsOpen(false)
-              }}
-            >
-              <span className="text-gray-700">"{searchQuery}"</span>
-              <span className="px-2 py-1 text-xs bg-blue-500 text-white rounded-full">Add new</span>
-            </button>
-          )}
-          
           {searchResults.map((therapy) => (
             <button
               key={therapy.id}
               type="button"
-              className="w-full text-left px-4 py-3 hover:bg-blue-50 border-b border-gray-100 last:border-b-0 focus:outline-none focus:bg-blue-50"
+              className="w-full text-left px-4 py-3 hover:bg-blue-50 border-b border-gray-100 focus:outline-none focus:bg-blue-50"
               onClick={() => handleTherapySelect(therapy)}
             >
               <div className="font-medium text-gray-900">
@@ -154,6 +138,22 @@ export function TherapyAddSearch({ onTherapyAdd, placeholder = "Search and add t
               )}
             </button>
           ))}
+          
+          {/* Add new option - moved to bottom */}
+          {onAddNew && searchQuery.length >= 3 && (
+            <button
+              type="button"
+              className="w-full text-left px-4 py-3 hover:bg-blue-50 border-t border-gray-200 focus:outline-none focus:bg-blue-50 flex items-center justify-between"
+              onClick={() => {
+                onAddNew(searchQuery)
+                setSearchQuery('')
+                setIsOpen(false)
+              }}
+            >
+              <span className="text-gray-700">"{searchQuery}"</span>
+              <span className="px-2 py-1 text-xs bg-blue-500 text-white rounded-full">Add new</span>
+            </button>
+          )}
         </div>
       )}
 

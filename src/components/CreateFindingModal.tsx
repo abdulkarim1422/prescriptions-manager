@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 
 interface Props {
-  onAdd: (finding: { name: string; code?: string; description?: string }) => void
+  onAdd: (finding: { id: number; name: string; code?: string; description?: string }) => void
   onClose: () => void
   initialName?: string
 }
@@ -15,9 +15,44 @@ export function CreateFindingModal({ onAdd, onClose, initialName = '' }: Props) 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
-    await onAdd({ name, code, description })
-    setLoading(false)
-    onClose()
+    
+    try {
+      // Save to database
+      const response = await fetch('/api/findings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: name.trim(),
+          code: code.trim() || undefined,
+          description: description.trim() || undefined,
+        }),
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to create finding')
+      }
+      
+      const createdFinding = await response.json() as { id: number; name: string; code?: string; description?: string }
+      
+      // Type-safe handling of the created finding
+      if (createdFinding && createdFinding.id) {
+        await onAdd({
+          id: createdFinding.id,
+          name: createdFinding.name,
+          code: createdFinding.code,
+          description: createdFinding.description
+        })
+      }
+      
+      onClose()
+    } catch (error) {
+      console.error('Error creating finding:', error)
+      alert('Failed to create finding. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (

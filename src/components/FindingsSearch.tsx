@@ -150,22 +150,6 @@ export function FindingsSearch({
         {/* Search Results Dropdown */}
         {isOpen && (searchResults.length > 0 || (onAddNew && searchQuery.length >= 2)) && (
           <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-            {/* Add new option */}
-            {onAddNew && searchQuery.length >= 2 && (
-              <button
-                type="button"
-                className="w-full text-left px-4 py-3 hover:bg-orange-50 border-b border-gray-100 focus:outline-none focus:bg-orange-50 flex items-center justify-between"
-                onClick={() => {
-                  onAddNew(searchQuery)
-                  setSearchQuery('')
-                  setIsOpen(false)
-                }}
-              >
-                <span className="text-gray-700">"{searchQuery}"</span>
-                <span className="px-2 py-1 text-xs bg-orange-500 text-white rounded-full">Add new</span>
-              </button>
-            )}
-            
             {searchResults.map((finding) => {
               const isSelected = selectedFindingIds.includes(Number(finding.id))
               const isAtMaxLimit = selectedFindingIds.length >= maxSelections && !isSelected
@@ -176,7 +160,7 @@ export function FindingsSearch({
                   type="button"
                   onClick={() => !isAtMaxLimit && handleFindingSelect(finding)}
                   disabled={isAtMaxLimit}
-                  className={`w-full text-left px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0 disabled:opacity-50 disabled:cursor-not-allowed ${
+                  className={`w-full text-left px-4 py-3 hover:bg-gray-50 border-b border-gray-100 disabled:opacity-50 disabled:cursor-not-allowed ${
                     isSelected ? 'bg-primary-50 text-primary-700' : ''
                   }`}
                 >
@@ -199,6 +183,22 @@ export function FindingsSearch({
                 </button>
               )
             })}
+            
+            {/* Add new option - moved to bottom */}
+            {onAddNew && searchQuery.length >= 2 && (
+              <button
+                type="button"
+                className="w-full text-left px-4 py-3 hover:bg-orange-50 border-t border-gray-200 focus:outline-none focus:bg-orange-50 flex items-center justify-between"
+                onClick={() => {
+                  onAddNew(searchQuery)
+                  setSearchQuery('')
+                  setIsOpen(false)
+                }}
+              >
+                <span className="text-gray-700">"{searchQuery}"</span>
+                <span className="px-2 py-1 text-xs bg-orange-500 text-white rounded-full">Add new</span>
+              </button>
+            )}
           </div>
         )}
       </div>

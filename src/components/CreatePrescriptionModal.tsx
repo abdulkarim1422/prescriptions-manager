@@ -160,7 +160,9 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
   }
 
   const handleDrugCreated = (newDrug: any) => {
-    handleAddMedicationFromSearch(newDrug.id, newDrug.product_name || newDrug.name)
+    if (newDrug && newDrug.id) {
+      handleAddMedicationFromSearch(newDrug.id, newDrug.product_name || newDrug.name)
+    }
     setShowCreateDrugModal(false)
     setNewItemName('')
   }
@@ -522,10 +524,7 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
             setShowCreateDrugModal(false)
             setNewItemName('')
           }}
-          onCreated={() => {
-            setShowCreateDrugModal(false)
-            setNewItemName('')
-          }}
+          onCreated={handleDrugCreated}
           initialName={newItemName}
         />
       )}

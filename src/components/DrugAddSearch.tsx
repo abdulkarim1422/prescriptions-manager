@@ -111,27 +111,11 @@ export function DrugAddSearch({ onDrugAdd, placeholder = "Search and add medicat
       {/* Search results */}
       {isOpen && (searchResults.length > 0 || (onAddNew && searchQuery.length >= 3)) && (
         <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
-          {/* Add new option */}
-          {onAddNew && searchQuery.length >= 3 && (
-            <button
-              type="button"
-              className="w-full text-left px-4 py-3 hover:bg-green-50 border-b border-gray-100 focus:outline-none focus:bg-green-50 flex items-center justify-between"
-              onClick={() => {
-                onAddNew(searchQuery)
-                setSearchQuery('')
-                setIsOpen(false)
-              }}
-            >
-              <span className="text-gray-700">"{searchQuery}"</span>
-              <span className="px-2 py-1 text-xs bg-green-500 text-white rounded-full">Add new</span>
-            </button>
-          )}
-          
           {searchResults.map((drug) => (
             <button
               key={drug.id}
               type="button"
-              className="w-full text-left px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0 focus:outline-none focus:bg-gray-50"
+              className="w-full text-left px-4 py-3 hover:bg-gray-50 border-b border-gray-100 focus:outline-none focus:bg-gray-50"
               onClick={() => handleDrugSelect(drug)}
             >
               <div className="font-medium text-gray-900">
@@ -149,6 +133,22 @@ export function DrugAddSearch({ onDrugAdd, placeholder = "Search and add medicat
               )}
             </button>
           ))}
+          
+          {/* Add new option - moved to bottom */}
+          {onAddNew && searchQuery.length >= 3 && (
+            <button
+              type="button"
+              className="w-full text-left px-4 py-3 hover:bg-green-50 border-t border-gray-200 focus:outline-none focus:bg-green-50 flex items-center justify-between"
+              onClick={() => {
+                onAddNew(searchQuery)
+                setSearchQuery('')
+                setIsOpen(false)
+              }}
+            >
+              <span className="text-gray-700">"{searchQuery}"</span>
+              <span className="px-2 py-1 text-xs bg-green-500 text-white rounded-full">Add new</span>
+            </button>
+          )}
         </div>
       )}
 

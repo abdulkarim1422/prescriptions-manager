@@ -2,7 +2,7 @@ import { useState } from 'react'
 
 interface CreateDrugModalProps {
   onClose: () => void
-  onCreated?: () => void
+  onCreated?: (drug?: any) => void
   initialName?: string
 }
 
@@ -37,7 +37,9 @@ export function CreateDrugModal({ onClose, onCreated, initialName = '' }: Create
         body: JSON.stringify(payload),
       })
       if (!res.ok) throw new Error('Failed to create drug')
-      if (onCreated) onCreated()
+      
+      const createdDrug = await res.json()
+      if (onCreated) onCreated(createdDrug)
       onClose()
     } catch (err) {
       console.error(err)
