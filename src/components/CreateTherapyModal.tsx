@@ -5,10 +5,11 @@ import { CreateTherapyRequest } from '../types'
 interface CreateTherapyModalProps {
   onSubmit: (data: CreateTherapyRequest) => void
   onClose: () => void
+  initialName?: string
 }
 
-export function CreateTherapyModal({ onSubmit, onClose }: CreateTherapyModalProps) {
-  const [name, setName] = useState('')
+export function CreateTherapyModal({ onSubmit, onClose, initialName = '' }: CreateTherapyModalProps) {
+  const [name, setName] = useState(initialName)
   const [description, setDescription] = useState('')
   const [category, setCategory] = useState('General')
   const [activeIngredient, setActiveIngredient] = useState('')

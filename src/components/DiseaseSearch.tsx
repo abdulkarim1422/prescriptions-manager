@@ -8,6 +8,7 @@ interface DiseaseSearchProps {
   placeholder?: string
   multiple?: boolean
   maxSelections?: number
+  onAddNew?: (searchTerm: string) => void
 }
 
 export function DiseaseSearch({ 
@@ -15,7 +16,8 @@ export function DiseaseSearch({
   onDiseasesChange, 
   placeholder = "Search for diseases/conditions...", 
   multiple = true,
-  maxSelections = 10
+  maxSelections = 10,
+  onAddNew
 }: DiseaseSearchProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<Disease[]>([])
@@ -188,8 +190,24 @@ export function DiseaseSearch({
         )}
 
         {/* Search results */}
-        {isOpen && searchResults.length > 0 && (
+        {isOpen && (searchResults.length > 0 || (onAddNew && searchQuery.length >= 2)) && (
           <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
+            {/* Add new option */}
+            {onAddNew && searchQuery.length >= 2 && (
+              <button
+                type="button"
+                className="w-full text-left px-4 py-3 hover:bg-purple-50 border-b border-gray-100 focus:outline-none focus:bg-purple-50 flex items-center justify-between"
+                onClick={() => {
+                  onAddNew(searchQuery)
+                  setSearchQuery('')
+                  setIsOpen(false)
+                }}
+              >
+                <span className="text-gray-700">"{searchQuery}"</span>
+                <span className="px-2 py-1 text-xs bg-purple-500 text-white rounded-full">Add new</span>
+              </button>
+            )}
+            
             {searchResults.map((disease) => (
               <button
                 key={disease.id}
@@ -226,7 +244,7 @@ export function DiseaseSearch({
         )}
 
         {/* No results */}
-        {isOpen && searchResults.length === 0 && searchQuery.length >= 2 && !isLoading && (
+        {isOpen && searchResults.length === 0 && searchQuery.length >= 2 && !isLoading && !onAddNew && (
           <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg">
             <div className="p-3 text-sm text-gray-500 text-center">
               No diseases found for "{searchQuery}"

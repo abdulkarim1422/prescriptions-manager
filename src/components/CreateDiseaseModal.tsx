@@ -5,12 +5,13 @@ import { Disease } from '../types'
 interface CreateDiseaseModalProps {
   onClose: () => void
   onCreated: (disease: Disease) => void
+  initialName?: string
 }
 
-export function CreateDiseaseModal({ onClose, onCreated }: CreateDiseaseModalProps) {
+export function CreateDiseaseModal({ onClose, onCreated, initialName = '' }: CreateDiseaseModalProps) {
   const [formData, setFormData] = useState({
     code: '',
-    name: '',
+    name: initialName,
     description: '',
     category: ''
   })

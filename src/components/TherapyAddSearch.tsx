@@ -5,9 +5,10 @@ import { Therapy } from '../types'
 interface TherapyAddSearchProps {
   onTherapyAdd: (therapyId: number, therapyName: string) => void
   placeholder?: string
+  onAddNew?: (searchTerm: string) => void
 }
 
-export function TherapyAddSearch({ onTherapyAdd, placeholder = "Search and add therapies..." }: TherapyAddSearchProps) {
+export function TherapyAddSearch({ onTherapyAdd, placeholder = "Search and add therapies...", onAddNew }: TherapyAddSearchProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<Therapy[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -108,8 +109,24 @@ export function TherapyAddSearch({ onTherapyAdd, placeholder = "Search and add t
       )}
 
       {/* Search results */}
-      {isOpen && searchResults.length > 0 && (
+      {isOpen && (searchResults.length > 0 || (onAddNew && searchQuery.length >= 3)) && (
         <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
+          {/* Add new option */}
+          {onAddNew && searchQuery.length >= 3 && (
+            <button
+              type="button"
+              className="w-full text-left px-4 py-3 hover:bg-blue-50 border-b border-gray-100 focus:outline-none focus:bg-blue-50 flex items-center justify-between"
+              onClick={() => {
+                onAddNew(searchQuery)
+                setSearchQuery('')
+                setIsOpen(false)
+              }}
+            >
+              <span className="text-gray-700">"{searchQuery}"</span>
+              <span className="px-2 py-1 text-xs bg-blue-500 text-white rounded-full">Add new</span>
+            </button>
+          )}
+          
           {searchResults.map((therapy) => (
             <button
               key={therapy.id}
@@ -141,7 +158,7 @@ export function TherapyAddSearch({ onTherapyAdd, placeholder = "Search and add t
       )}
 
       {/* No results */}
-      {isOpen && searchResults.length === 0 && searchQuery.length >= 3 && !isLoading && (
+      {isOpen && searchResults.length === 0 && searchQuery.length >= 3 && !isLoading && !onAddNew && (
         <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg">
           <div className="p-3 text-sm text-gray-500 text-center">
             No therapies found for "{searchQuery}"

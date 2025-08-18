@@ -5,9 +5,10 @@ import { Drug } from '../types'
 interface DrugAddSearchProps {
   onDrugAdd: (drugId: number, drugName: string) => void
   placeholder?: string
+  onAddNew?: (searchTerm: string) => void
 }
 
-export function DrugAddSearch({ onDrugAdd, placeholder = "Search and add medications..." }: DrugAddSearchProps) {
+export function DrugAddSearch({ onDrugAdd, placeholder = "Search and add medications...", onAddNew }: DrugAddSearchProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<Drug[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -108,8 +109,24 @@ export function DrugAddSearch({ onDrugAdd, placeholder = "Search and add medicat
       )}
 
       {/* Search results */}
-      {isOpen && searchResults.length > 0 && (
+      {isOpen && (searchResults.length > 0 || (onAddNew && searchQuery.length >= 3)) && (
         <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
+          {/* Add new option */}
+          {onAddNew && searchQuery.length >= 3 && (
+            <button
+              type="button"
+              className="w-full text-left px-4 py-3 hover:bg-green-50 border-b border-gray-100 focus:outline-none focus:bg-green-50 flex items-center justify-between"
+              onClick={() => {
+                onAddNew(searchQuery)
+                setSearchQuery('')
+                setIsOpen(false)
+              }}
+            >
+              <span className="text-gray-700">"{searchQuery}"</span>
+              <span className="px-2 py-1 text-xs bg-green-500 text-white rounded-full">Add new</span>
+            </button>
+          )}
+          
           {searchResults.map((drug) => (
             <button
               key={drug.id}
@@ -136,7 +153,7 @@ export function DrugAddSearch({ onDrugAdd, placeholder = "Search and add medicat
       )}
 
       {/* No results */}
-      {isOpen && searchResults.length === 0 && searchQuery.length >= 3 && !isLoading && (
+      {isOpen && searchResults.length === 0 && searchQuery.length >= 3 && !isLoading && !onAddNew && (
         <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg">
           <div className="p-3 text-sm text-gray-500 text-center">
             No drugs found for "{searchQuery}"

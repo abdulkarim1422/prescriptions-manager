@@ -8,6 +8,7 @@ interface FindingsSearchProps {
   placeholder?: string
   multiple?: boolean
   maxSelections?: number
+  onAddNew?: (searchTerm: string) => void
 }
 
 export function FindingsSearch({ 
@@ -15,7 +16,8 @@ export function FindingsSearch({
   onFindingsChange, 
   placeholder = "Search for findings...", 
   multiple = true,
-  maxSelections = 10
+  maxSelections = 10,
+  onAddNew
 }: FindingsSearchProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<Finding[]>([])
@@ -146,8 +148,24 @@ export function FindingsSearch({
         </div>
 
         {/* Search Results Dropdown */}
-        {isOpen && searchResults.length > 0 && (
+        {isOpen && (searchResults.length > 0 || (onAddNew && searchQuery.length >= 2)) && (
           <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+            {/* Add new option */}
+            {onAddNew && searchQuery.length >= 2 && (
+              <button
+                type="button"
+                className="w-full text-left px-4 py-3 hover:bg-orange-50 border-b border-gray-100 focus:outline-none focus:bg-orange-50 flex items-center justify-between"
+                onClick={() => {
+                  onAddNew(searchQuery)
+                  setSearchQuery('')
+                  setIsOpen(false)
+                }}
+              >
+                <span className="text-gray-700">"{searchQuery}"</span>
+                <span className="px-2 py-1 text-xs bg-orange-500 text-white rounded-full">Add new</span>
+              </button>
+            )}
+            
             {searchResults.map((finding) => {
               const isSelected = selectedFindingIds.includes(Number(finding.id))
               const isAtMaxLimit = selectedFindingIds.length >= maxSelections && !isSelected

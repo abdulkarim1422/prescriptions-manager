@@ -8,6 +8,10 @@ import { TherapyAddSearch } from './TherapyAddSearch'
 import { DiseaseSearch } from './DiseaseSearch'
 import { FindingsSearch } from './FindingsSearch'
 import { Finding } from './FindingsView'
+import { CreateDrugModal } from './CreateDrugModal'
+import { CreateTherapyModal } from './CreateTherapyModal'
+import { CreateDiseaseModal } from './CreateDiseaseModal'
+import { CreateFindingModal } from './CreateFindingModal'
 
 interface CreatePrescriptionModalProps {
   diseases: Disease[]
@@ -42,6 +46,13 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
   const [selectedDiseaseObjects, setSelectedDiseaseObjects] = useState<Disease[]>([])
   const [selectedFindings, setSelectedFindings] = useState<number[]>([])
   const [selectedFindingObjects, setSelectedFindingObjects] = useState<Finding[]>([])
+
+  // Create modal states
+  const [showCreateDrugModal, setShowCreateDrugModal] = useState(false)
+  const [showCreateTherapyModal, setShowCreateTherapyModal] = useState(false)
+  const [showCreateDiseaseModal, setShowCreateDiseaseModal] = useState(false)
+  const [showCreateFindingModal, setShowCreateFindingModal] = useState(false)
+  const [newItemName, setNewItemName] = useState('')
 
   const handleAddMedicationFromSearch = (drugId: number, drugName: string) => {
     const newMedication: PrescriptionItem = {
@@ -125,6 +136,53 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
   const handleFindingsChange = (findingIds: number[], findings: Finding[]) => {
     setSelectedFindings(findingIds)
     setSelectedFindingObjects(findings)
+  }
+
+  // Add new handlers
+  const handleAddNewDrug = (searchTerm: string) => {
+    setNewItemName(searchTerm)
+    setShowCreateDrugModal(true)
+  }
+
+  const handleAddNewTherapy = (searchTerm: string) => {
+    setNewItemName(searchTerm)
+    setShowCreateTherapyModal(true)
+  }
+
+  const handleAddNewDisease = (searchTerm: string) => {
+    setNewItemName(searchTerm)
+    setShowCreateDiseaseModal(true)
+  }
+
+  const handleAddNewFinding = (searchTerm: string) => {
+    setNewItemName(searchTerm)
+    setShowCreateFindingModal(true)
+  }
+
+  const handleDrugCreated = (newDrug: any) => {
+    handleAddMedicationFromSearch(newDrug.id, newDrug.product_name || newDrug.name)
+    setShowCreateDrugModal(false)
+    setNewItemName('')
+  }
+
+  const handleTherapyCreated = (newTherapy: any) => {
+    handleAddTherapyFromSearch(newTherapy.id, newTherapy.name)
+    setShowCreateTherapyModal(false)
+    setNewItemName('')
+  }
+
+  const handleDiseaseCreated = (newDisease: any) => {
+    setSelectedDiseases(prev => [...prev, newDisease.id])
+    setSelectedDiseaseObjects(prev => [...prev, newDisease])
+    setShowCreateDiseaseModal(false)
+    setNewItemName('')
+  }
+
+  const handleFindingCreated = (newFinding: any) => {
+    setSelectedFindings(prev => [...prev, newFinding.id])
+    setSelectedFindingObjects(prev => [...prev, newFinding])
+    setShowCreateFindingModal(false)
+    setNewItemName('')
   }
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -234,6 +292,7 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
               <DrugAddSearch
                 onDrugAdd={handleAddMedicationFromSearch}
                 placeholder="Search and add medications..."
+                onAddNew={handleAddNewDrug}
               />
             </div>
 
@@ -324,6 +383,7 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
               <TherapyAddSearch
                 onTherapyAdd={handleAddTherapyFromSearch}
                 placeholder="Search and add therapies..."
+                onAddNew={handleAddNewTherapy}
               />
             </div>
 
@@ -416,6 +476,7 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
               placeholder="Search for diseases/conditions (min 2 characters)..."
               multiple={true}
               maxSelections={10}
+              onAddNew={handleAddNewDisease}
             />
           </div>
 
@@ -431,6 +492,7 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
               placeholder="Search for findings (min 2 characters)..."
               multiple={true}
               maxSelections={10}
+              onAddNew={handleAddNewFinding}
             />
           </div>
 
@@ -452,6 +514,60 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
           </div>
         </form>
       </div>
+
+      {/* Create Modals */}
+      {showCreateDrugModal && (
+        <CreateDrugModal
+          onClose={() => {
+            setShowCreateDrugModal(false)
+            setNewItemName('')
+          }}
+          onCreated={() => {
+            setShowCreateDrugModal(false)
+            setNewItemName('')
+          }}
+          initialName={newItemName}
+        />
+      )}
+
+      {showCreateTherapyModal && (
+        <CreateTherapyModal
+          onSubmit={(data) => {
+            handleTherapyCreated(data)
+          }}
+          onClose={() => {
+            setShowCreateTherapyModal(false)
+            setNewItemName('')
+          }}
+          initialName={newItemName}
+        />
+      )}
+
+      {showCreateDiseaseModal && (
+        <CreateDiseaseModal
+          onClose={() => {
+            setShowCreateDiseaseModal(false)
+            setNewItemName('')
+          }}
+          onCreated={(disease) => {
+            handleDiseaseCreated(disease)
+          }}
+          initialName={newItemName}
+        />
+      )}
+
+      {showCreateFindingModal && (
+        <CreateFindingModal
+          onAdd={(finding) => {
+            handleFindingCreated(finding)
+          }}
+          onClose={() => {
+            setShowCreateFindingModal(false)
+            setNewItemName('')
+          }}
+          initialName={newItemName}
+        />
+      )}
     </div>
   )
 }

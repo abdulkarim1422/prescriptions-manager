@@ -3,10 +3,11 @@ import React, { useState } from 'react'
 interface Props {
   onAdd: (finding: { name: string; code?: string; description?: string }) => void
   onClose: () => void
+  initialName?: string
 }
 
-export function CreateFindingModal({ onAdd, onClose }: Props) {
-  const [name, setName] = useState('')
+export function CreateFindingModal({ onAdd, onClose, initialName = '' }: Props) {
+  const [name, setName] = useState(initialName)
   const [code, setCode] = useState('')
   const [description, setDescription] = useState('')
   const [loading, setLoading] = useState(false)

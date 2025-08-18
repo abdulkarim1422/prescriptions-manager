@@ -3,13 +3,14 @@ import { useState } from 'react'
 interface CreateDrugModalProps {
   onClose: () => void
   onCreated?: () => void
+  initialName?: string
 }
 
-export function CreateDrugModal({ onClose, onCreated }: CreateDrugModalProps) {
+export function CreateDrugModal({ onClose, onCreated, initialName = '' }: CreateDrugModalProps) {
   const [barcode, setBarcode] = useState('')
   const [atcCode, setAtcCode] = useState('')
   const [activeIngredient, setActiveIngredient] = useState('')
-  const [productName, setProductName] = useState('')
+  const [productName, setProductName] = useState(initialName)
   const [categories, setCategories] = useState<string>('')
   const [description, setDescription] = useState('')
   const [submitting, setSubmitting] = useState(false)
