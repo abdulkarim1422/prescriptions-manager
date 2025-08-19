@@ -18,19 +18,37 @@ export function CreateDrugModal({ onClose, onCreated, initialName = '' }: Create
   const handleSubmit = async () => {
     try {
       setSubmitting(true)
-      const payload = {
-        barcode: barcode || undefined,
-        atc_code: atcCode || undefined,
-        active_ingredient: activeIngredient || undefined,
-        product_name: productName || undefined,
-        categories: categories
-          ? categories
-              .split(',')
-              .map((s) => s.trim())
-              .filter(Boolean)
-          : [],
-        description: description || undefined,
+      
+      // Prepare payload without undefined values
+      const payload: any = {}
+      
+      // Only include non-empty values
+      if (barcode.trim()) {
+        payload.barcode = barcode.trim()
       }
+      if (atcCode.trim()) {
+        payload.atc_code = atcCode.trim()
+      }
+      if (activeIngredient.trim()) {
+        payload.active_ingredient = activeIngredient.trim()
+      }
+      if (productName.trim()) {
+        payload.product_name = productName.trim()
+      }
+      if (description.trim()) {
+        payload.description = description.trim()
+      }
+      
+      // Handle categories array
+      if (categories.trim()) {
+        payload.categories = categories
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean)
+      } else {
+        payload.categories = []
+      }
+
       const res = await fetch('/api/drugs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

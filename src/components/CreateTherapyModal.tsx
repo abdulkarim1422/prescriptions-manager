@@ -25,15 +25,32 @@ export function CreateTherapyModal({ onSubmit, onClose, initialName = '' }: Crea
       return
     }
 
-    onSubmit({
+    // Prepare payload without undefined values
+    const payload: any = {
       name: name.trim(),
-      description: description.trim() || undefined,
-      category: category.trim() || undefined,
-      active_ingredient: activeIngredient.trim() || undefined,
-      dosage_form: dosageForm.trim() || undefined,
-      strength: strength.trim() || undefined,
-      manufacturer: manufacturer.trim() || undefined
-    })
+    }
+    
+    // Only include non-empty values
+    if (description.trim()) {
+      payload.description = description.trim()
+    }
+    if (category.trim()) {
+      payload.category = category.trim()
+    }
+    if (activeIngredient.trim()) {
+      payload.active_ingredient = activeIngredient.trim()
+    }
+    if (dosageForm.trim()) {
+      payload.dosage_form = dosageForm.trim()
+    }
+    if (strength.trim()) {
+      payload.strength = strength.trim()
+    }
+    if (manufacturer.trim()) {
+      payload.manufacturer = manufacturer.trim()
+    }
+
+    onSubmit(payload)
   }
 
   return (

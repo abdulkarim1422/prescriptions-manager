@@ -17,17 +17,26 @@ export function CreateFindingModal({ onAdd, onClose, initialName = '' }: Props) 
     setLoading(true)
     
     try {
+      // Prepare payload without undefined values
+      const payload: any = {
+        name: name.trim(),
+      }
+      
+      // Only include non-empty values
+      if (code.trim()) {
+        payload.code = code.trim()
+      }
+      if (description.trim()) {
+        payload.description = description.trim()
+      }
+
       // Save to database
       const response = await fetch('/api/findings', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          name: name.trim(),
-          code: code.trim() || undefined,
-          description: description.trim() || undefined,
-        }),
+        body: JSON.stringify(payload),
       })
       
       if (!response.ok) {

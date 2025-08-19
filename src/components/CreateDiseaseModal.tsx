@@ -27,17 +27,28 @@ export function CreateDiseaseModal({ onClose, onCreated, initialName = '' }: Cre
 
     setIsLoading(true)
     try {
+      // Prepare payload without undefined values
+      const payload: any = {
+        name: formData.name.trim(),
+      }
+      
+      // Only include non-empty values
+      if (formData.code.trim()) {
+        payload.code = formData.code.trim()
+      }
+      if (formData.description.trim()) {
+        payload.description = formData.description.trim()
+      }
+      if (formData.category.trim()) {
+        payload.category = formData.category.trim()
+      }
+
       const response = await fetch('/api/diseases', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          code: formData.code.trim() || undefined,
-          name: formData.name.trim(),
-          description: formData.description.trim() || undefined,
-          category: formData.category.trim() || undefined,
-        }),
+        body: JSON.stringify(payload),
       })
 
       if (response.ok) {
