@@ -17,7 +17,7 @@ CREATE INDEX IF NOT EXISTS idx_findings_category ON findings(category);
 -- Create diseases table
 CREATE TABLE IF NOT EXISTS diseases (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    code TEXT UNIQUE NOT NULL,
+    code TEXT UNIQUE,
     name TEXT NOT NULL,
     description TEXT,
     category TEXT DEFAULT 'General',
