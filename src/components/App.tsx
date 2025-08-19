@@ -507,7 +507,7 @@ export function PrescriptionsApp() {
                   Diseases & Findings
                   <ChevronDown size={16} className="ml-1" />
                 </div>
-                <div className="absolute left-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                <div className="absolute left-0 top-full w-48 bg-white border border-gray-200 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none group-hover:pointer-events-auto">
                   <NavLink
                     to="/diseases"
                     className={({ isActive }) =>
@@ -533,7 +533,7 @@ export function PrescriptionsApp() {
                   Workflow
                   <ChevronDown size={16} className="ml-1" />
                 </div>
-                <div className="absolute left-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                <div className="absolute left-0 top-full w-48 bg-white border border-gray-200 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none group-hover:pointer-events-auto">
                   <NavLink
                     to="/medications"
                     className={({ isActive }) =>
