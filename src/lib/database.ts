@@ -254,7 +254,7 @@ export class DatabaseService {
   async createDisease(disease: Omit<Disease, 'id' | 'created_at' | 'updated_at'>): Promise<Disease> {
     const result = await this.db.prepare(
       'INSERT INTO diseases (code, name, description, category) VALUES (?, ?, ?, ?) RETURNING *'
-    ).bind(disease.code, disease.name, disease.description, disease.category).first();
+    ).bind(disease.code || null, disease.name, disease.description || null, disease.category || null).first();
     return result as unknown as Disease;
   }
 

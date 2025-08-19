@@ -151,7 +151,7 @@ export interface UpdatePrescriptionRequest extends Partial<CreatePrescriptionReq
 }
 
 export interface CreateDiseaseRequest {
-  code: string;
+  code?: string;
   name: string;
   description?: string;
   category?: string;
