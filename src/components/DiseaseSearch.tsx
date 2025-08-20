@@ -9,6 +9,8 @@ interface DiseaseSearchProps {
   multiple?: boolean
   maxSelections?: number
   onAddNew?: (searchTerm: string) => void
+  onQuickAdd?: (diseaseName: string) => void
+  selectedDiseaseObjects?: Disease[]
 }
 
 export function DiseaseSearch({ 
@@ -17,7 +19,9 @@ export function DiseaseSearch({
   placeholder = "Search for diseases/conditions...", 
   multiple = true,
   maxSelections = 10,
-  onAddNew
+  onAddNew,
+  onQuickAdd,
+  selectedDiseaseObjects
 }: DiseaseSearchProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<Disease[]>([])
@@ -28,12 +32,16 @@ export function DiseaseSearch({
 
   // Load selected disease details when component mounts or selectedDiseaseIds change
   useEffect(() => {
-    if (selectedDiseaseIds.length > 0) {
+    if (selectedDiseaseObjects && selectedDiseaseObjects.length > 0) {
+      // Use the passed objects directly
+      setSelectedDiseases(selectedDiseaseObjects)
+    } else if (selectedDiseaseIds.length > 0) {
+      // Fallback to loading from API if no objects provided
       loadSelectedDiseases()
     } else {
       setSelectedDiseases([])
     }
-  }, [selectedDiseaseIds])
+  }, [selectedDiseaseIds, selectedDiseaseObjects])
 
   // Handle search debouncing
   useEffect(() => {
@@ -227,18 +235,36 @@ export function DiseaseSearch({
             
             {/* Add new option - moved to bottom */}
             {onAddNew && searchQuery.length >= 2 && (
-              <button
-                type="button"
-                className="w-full text-left px-4 py-3 hover:bg-purple-50 border-t border-gray-200 focus:outline-none focus:bg-purple-50 flex items-center justify-between"
-                onClick={() => {
-                  onAddNew(searchQuery)
-                  setSearchQuery('')
-                  setIsOpen(false)
-                }}
-              >
-                <span className="text-gray-700">"{searchQuery}"</span>
-                <span className="px-2 py-1 text-xs bg-purple-500 text-white rounded-full">Add new</span>
-              </button>
+              <div className="border-t border-gray-200">
+                <div className="flex items-center">
+                  <button
+                    type="button"
+                    className="flex-1 text-left px-4 py-3 hover:bg-purple-50 focus:outline-none focus:bg-purple-50"
+                    onClick={() => {
+                      onAddNew(searchQuery)
+                      setSearchQuery('')
+                      setIsOpen(false)
+                    }}
+                  >
+                    <span className="text-gray-700">"{searchQuery}"</span>
+                    <span className="px-2 py-1 text-xs bg-purple-500 text-white rounded-full ml-2">Add new</span>
+                  </button>
+                  {onQuickAdd && (
+                    <button
+                      type="button"
+                      className="px-3 py-1 mr-2 text-xs bg-purple-600 text-white rounded-full hover:bg-purple-700 focus:outline-none"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onQuickAdd(searchQuery)
+                        setSearchQuery('')
+                        setIsOpen(false)
+                      }}
+                    >
+                      Quick Add
+                    </button>
+                  )}
+                </div>
+              </div>
             )}
           </div>
         )}

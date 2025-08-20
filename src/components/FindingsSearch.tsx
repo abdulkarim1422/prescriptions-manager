@@ -9,6 +9,8 @@ interface FindingsSearchProps {
   multiple?: boolean
   maxSelections?: number
   onAddNew?: (searchTerm: string) => void
+  onQuickAdd?: (findingName: string) => void
+  selectedFindingObjects?: Finding[]
 }
 
 export function FindingsSearch({ 
@@ -17,7 +19,9 @@ export function FindingsSearch({
   placeholder = "Search for findings...", 
   multiple = true,
   maxSelections = 10,
-  onAddNew
+  onAddNew,
+  onQuickAdd,
+  selectedFindingObjects
 }: FindingsSearchProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<Finding[]>([])
@@ -28,12 +32,16 @@ export function FindingsSearch({
 
   // Load selected finding details when component mounts or selectedFindingIds change
   useEffect(() => {
-    if (selectedFindingIds.length > 0) {
+    if (selectedFindingObjects && selectedFindingObjects.length > 0) {
+      // Use the passed objects directly
+      setSelectedFindings(selectedFindingObjects)
+    } else if (selectedFindingIds.length > 0) {
+      // Fallback to loading from API if no objects provided
       loadSelectedFindings()
     } else {
       setSelectedFindings([])
     }
-  }, [selectedFindingIds])
+  }, [selectedFindingIds, selectedFindingObjects])
 
   // Handle search debouncing
   useEffect(() => {
@@ -59,9 +67,13 @@ export function FindingsSearch({
 
   const loadSelectedFindings = async () => {
     try {
-      const promises = selectedFindingIds.map(id => 
-        fetch(`/api/findings/${id}`).then(res => res.json())
-      )
+      const promises = selectedFindingIds.map(async (id) => {
+        const response = await fetch(`/api/findings/${id}`)
+        if (response.ok) {
+          return await response.json()
+        }
+        return null
+      })
       const findings = await Promise.all(promises)
       setSelectedFindings(findings.filter((f: any) => f && !f.error) as Finding[])
     } catch (error) {
@@ -186,18 +198,36 @@ export function FindingsSearch({
             
             {/* Add new option - moved to bottom */}
             {onAddNew && searchQuery.length >= 2 && (
-              <button
-                type="button"
-                className="w-full text-left px-4 py-3 hover:bg-orange-50 border-t border-gray-200 focus:outline-none focus:bg-orange-50 flex items-center justify-between"
-                onClick={() => {
-                  onAddNew(searchQuery)
-                  setSearchQuery('')
-                  setIsOpen(false)
-                }}
-              >
-                <span className="text-gray-700">"{searchQuery}"</span>
-                <span className="px-2 py-1 text-xs bg-orange-500 text-white rounded-full">Add new</span>
-              </button>
+              <div className="border-t border-gray-200">
+                <div className="flex items-center">
+                  <button
+                    type="button"
+                    className="flex-1 text-left px-4 py-3 hover:bg-orange-50 focus:outline-none focus:bg-orange-50"
+                    onClick={() => {
+                      onAddNew(searchQuery)
+                      setSearchQuery('')
+                      setIsOpen(false)
+                    }}
+                  >
+                    <span className="text-gray-700">"{searchQuery}"</span>
+                    <span className="px-2 py-1 text-xs bg-orange-500 text-white rounded-full ml-2">Add new</span>
+                  </button>
+                  {onQuickAdd && (
+                    <button
+                      type="button"
+                      className="px-3 py-1 mr-2 text-xs bg-orange-600 text-white rounded-full hover:bg-orange-700 focus:outline-none"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onQuickAdd(searchQuery)
+                        setSearchQuery('')
+                        setIsOpen(false)
+                      }}
+                    >
+                      Quick Add
+                    </button>
+                  )}
+                </div>
+              </div>
             )}
           </div>
         )}

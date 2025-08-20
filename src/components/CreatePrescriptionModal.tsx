@@ -214,6 +214,63 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
     setTherapies([...therapies, newTherapy])
   }
 
+  // Quick add handlers for diseases and findings
+  const handleQuickAddDisease = async (diseaseName: string) => {
+    try {
+      // Create the disease through API
+      const response = await fetch('/api/diseases', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: diseaseName,
+          code: `QUICK_${Date.now()}`,
+          description: `Quick added disease: ${diseaseName}`
+        })
+      })
+      
+      if (response.ok) {
+        const newDisease = await response.json() as Disease
+        // Add to both arrays
+        setSelectedDiseases(prev => [...prev, newDisease.id])
+        setSelectedDiseaseObjects(prev => [...prev, newDisease])
+      } else {
+        console.error('Failed to create disease')
+        alert('Failed to create disease. Please try again.')
+      }
+    } catch (error) {
+      console.error('Error creating disease:', error)
+      alert('Error creating disease. Please try again.')
+    }
+  }
+
+  const handleQuickAddFinding = async (findingName: string) => {
+    try {
+      // Create the finding through API
+      const response = await fetch('/api/findings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: findingName,
+          code: `QUICK_${Date.now()}`,
+          description: `Quick added finding: ${findingName}`
+        })
+      })
+      
+      if (response.ok) {
+        const newFinding = await response.json() as Finding
+        // Add to both arrays
+        setSelectedFindings(prev => [...prev, Number(newFinding.id)])
+        setSelectedFindingObjects(prev => [...prev, newFinding])
+      } else {
+        console.error('Failed to create finding')
+        alert('Failed to create finding. Please try again.')
+      }
+    } catch (error) {
+      console.error('Error creating finding:', error)
+      alert('Error creating finding. Please try again.')
+    }
+  }
+
 
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -501,6 +558,8 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
               multiple={true}
               maxSelections={10}
               onAddNew={handleAddNewDisease}
+              onQuickAdd={handleQuickAddDisease}
+              selectedDiseaseObjects={selectedDiseaseObjects}
             />
           </div>
 
@@ -517,6 +576,8 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
               multiple={true}
               maxSelections={10}
               onAddNew={handleAddNewFinding}
+              onQuickAdd={handleQuickAddFinding}
+              selectedFindingObjects={selectedFindingObjects}
             />
           </div>
 
