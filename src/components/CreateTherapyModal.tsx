@@ -17,7 +17,7 @@ export function CreateTherapyModal({ onSubmit, onClose, initialName = '' }: Crea
   const [strength, setStrength] = useState('')
   const [manufacturer, setManufacturer] = useState('')
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
     if (!name.trim()) {
@@ -25,32 +25,50 @@ export function CreateTherapyModal({ onSubmit, onClose, initialName = '' }: Crea
       return
     }
 
-    // Prepare payload without undefined values
-    const payload: any = {
-      name: name.trim(),
-    }
-    
-    // Only include non-empty values
-    if (description.trim()) {
-      payload.description = description.trim()
-    }
-    if (category.trim()) {
-      payload.category = category.trim()
-    }
-    if (activeIngredient.trim()) {
-      payload.active_ingredient = activeIngredient.trim()
-    }
-    if (dosageForm.trim()) {
-      payload.dosage_form = dosageForm.trim()
-    }
-    if (strength.trim()) {
-      payload.strength = strength.trim()
-    }
-    if (manufacturer.trim()) {
-      payload.manufacturer = manufacturer.trim()
-    }
+    try {
+      // Prepare payload without undefined values
+      const payload: any = {
+        name: name.trim(),
+      }
+      
+      // Only include non-empty values
+      if (description.trim()) {
+        payload.description = description.trim()
+      }
+      if (category.trim()) {
+        payload.category = category.trim()
+      }
+      if (activeIngredient.trim()) {
+        payload.active_ingredient = activeIngredient.trim()
+      }
+      if (dosageForm.trim()) {
+        payload.dosage_form = dosageForm.trim()
+      }
+      if (strength.trim()) {
+        payload.strength = strength.trim()
+      }
+      if (manufacturer.trim()) {
+        payload.manufacturer = manufacturer.trim()
+      }
 
-    onSubmit(payload)
+      // Create the therapy through API
+      const response = await fetch('/api/therapies', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      
+      if (response.ok) {
+        const newTherapy = await response.json() as any
+        onSubmit(newTherapy)
+      } else {
+        console.error('Failed to create therapy')
+        alert('Failed to create therapy. Please try again.')
+      }
+    } catch (error) {
+      console.error('Error creating therapy:', error)
+      alert('Error creating therapy. Please try again.')
+    }
   }
 
   return (
