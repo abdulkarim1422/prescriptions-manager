@@ -140,37 +140,39 @@ export function TherapyAddSearch({ onTherapyAdd, placeholder = "Search and add t
             </button>
           ))}
           
-          {/* Add new option - moved to bottom */}
-          {onAddNew && searchQuery.length >= 3 && (
-            <div className="border-t border-gray-200">
-              <button
-                type="button"
-                className="w-full text-left px-4 py-3 hover:bg-blue-50 focus:outline-none focus:bg-blue-50 flex items-center justify-between"
-                onClick={() => {
-                  onAddNew(searchQuery)
-                  setSearchQuery('')
-                  setIsOpen(false)
-                }}
-              >
-                <span className="text-gray-700">"{searchQuery}"</span>
-                <span className="px-2 py-1 text-xs bg-blue-500 text-white rounded-full">Add new</span>
-              </button>
-              {onQuickAdd && (
-                <button
-                  type="button"
-                  className="w-full text-left px-4 py-2 hover:bg-blue-50 focus:outline-none focus:bg-blue-50 flex items-center justify-between border-t border-gray-100"
-                  onClick={() => {
-                    onQuickAdd(searchQuery)
-                    setSearchQuery('')
-                    setIsOpen(false)
-                  }}
-                >
-                  <span className="text-gray-700">Quick add "{searchQuery}"</span>
-                  <span className="px-2 py-1 text-xs bg-blue-600 text-white rounded-full">Quick Add</span>
-                </button>
-              )}
-            </div>
-          )}
+                     {/* Add new option - moved to bottom */}
+           {onAddNew && searchQuery.length >= 3 && (
+             <div className="border-t border-gray-200">
+               <div className="flex items-center">
+                 <button
+                   type="button"
+                   className="flex-1 text-left px-4 py-3 hover:bg-blue-50 focus:outline-none focus:bg-blue-50"
+                   onClick={() => {
+                     onAddNew(searchQuery)
+                     setSearchQuery('')
+                     setIsOpen(false)
+                   }}
+                 >
+                   <span className="text-gray-700">"{searchQuery}"</span>
+                   <span className="px-2 py-1 text-xs bg-blue-500 text-white rounded-full ml-2">Add new</span>
+                 </button>
+                 {onQuickAdd && (
+                   <button
+                     type="button"
+                     className="px-3 py-1 mr-2 text-xs bg-blue-600 text-white rounded-full hover:bg-blue-700 focus:outline-none"
+                     onClick={(e) => {
+                       e.stopPropagation()
+                       onQuickAdd(searchQuery)
+                       setSearchQuery('')
+                       setIsOpen(false)
+                     }}
+                   >
+                     Quick Add
+                   </button>
+                 )}
+               </div>
+             </div>
+           )}
         </div>
       )}
 
