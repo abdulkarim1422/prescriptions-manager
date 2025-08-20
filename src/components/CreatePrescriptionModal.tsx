@@ -190,28 +190,76 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
   }
 
   // Quick add handlers
-  const handleQuickAddMedication = (medicationName: string) => {
-    const newMedication: PrescriptionItem = {
-      medication_id: undefined,
-      medication_name: medicationName,
-      dosage: '',
-      frequency: '',
-      duration: '',
-      instructions: ''
+  const handleQuickAddMedication = async (medicationName: string) => {
+    try {
+      // Create the medication through API
+      const response = await fetch('/api/drugs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          product_name: medicationName,
+          generic_name: medicationName,
+          dosage_form: 'Quick added',
+          strength: 'Quick added',
+          manufacturer: 'Quick added'
+        })
+      })
+      
+      if (response.ok) {
+        const newDrug = await response.json() as any
+        // Add to medications with the new drug ID
+        const newMedication: PrescriptionItem = {
+          medication_id: newDrug.id,
+          medication_name: newDrug.product_name || newDrug.name,
+          dosage: '',
+          frequency: '',
+          duration: '',
+          instructions: ''
+        }
+        setMedications([...medications, newMedication])
+      } else {
+        console.error('Failed to create medication')
+        alert('Failed to create medication. Please try again.')
+      }
+    } catch (error) {
+      console.error('Error creating medication:', error)
+      alert('Error creating medication. Please try again.')
     }
-    setMedications([...medications, newMedication])
   }
 
-  const handleQuickAddTherapy = (therapyName: string) => {
-    const newTherapy: TherapyItem = {
-      therapy_id: undefined,
-      therapy_name: therapyName,
-      procedure: '',
-      timing: '',
-      duration: '',
-      instructions: ''
+  const handleQuickAddTherapy = async (therapyName: string) => {
+    try {
+      // Create the therapy through API
+      const response = await fetch('/api/therapies', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: therapyName,
+          description: `Quick added therapy: ${therapyName}`,
+          category: 'Quick added'
+        })
+      })
+      
+      if (response.ok) {
+        const newTherapy = await response.json() as any
+        // Add to therapies with the new therapy ID
+        const newTherapyItem: TherapyItem = {
+          therapy_id: newTherapy.id,
+          therapy_name: newTherapy.name,
+          procedure: '',
+          timing: '',
+          duration: '',
+          instructions: ''
+        }
+        setTherapies([...therapies, newTherapyItem])
+      } else {
+        console.error('Failed to create therapy')
+        alert('Failed to create therapy. Please try again.')
+      }
+    } catch (error) {
+      console.error('Error creating therapy:', error)
+      alert('Error creating therapy. Please try again.')
     }
-    setTherapies([...therapies, newTherapy])
   }
 
   // Quick add handlers for diseases and findings
