@@ -53,6 +53,8 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
   const [showCreateDiseaseModal, setShowCreateDiseaseModal] = useState(false)
   const [showCreateFindingModal, setShowCreateFindingModal] = useState(false)
   const [newItemName, setNewItemName] = useState('')
+  
+
 
   const handleAddMedicationFromSearch = (drugId: number, drugName: string) => {
     const newMedication: PrescriptionItem = {
@@ -187,6 +189,37 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
     setNewItemName('')
   }
 
+  // Quick add handlers
+  const handleQuickAddMedication = () => {
+    if (quickAddMedication.trim()) {
+      const newMedication: PrescriptionItem = {
+        medication_id: undefined,
+        medication_name: quickAddMedication.trim(),
+        dosage: '',
+        frequency: '',
+        duration: '',
+        instructions: ''
+      }
+      setMedications([...medications, newMedication])
+      setQuickAddMedication('')
+    }
+  }
+
+  const handleQuickAddTherapy = () => {
+    if (quickAddTherapy.trim()) {
+      const newTherapy: TherapyItem = {
+        therapy_id: undefined,
+        therapy_name: quickAddTherapy.trim(),
+        procedure: '',
+        timing: '',
+        duration: '',
+        instructions: ''
+      }
+      setTherapies([...therapies, newTherapy])
+      setQuickAddTherapy('')
+    }
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     
@@ -195,18 +228,13 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
       return
     }
 
+    // Only require medication_id/therapy_id to be present
     const validMedications = medications.filter(med => 
-      (med.medication_id || 0) > 0 && 
-      med.dosage.trim() && 
-      med.frequency.trim() && 
-      med.duration.trim()
+      (med.medication_id || 0) > 0
     )
 
     const validTherapies = therapies.filter(therapy => 
-      (therapy.therapy_id || 0) > 0 && 
-      therapy.procedure.trim() && 
-      therapy.timing.trim() && 
-      therapy.duration.trim()
+      (therapy.therapy_id || 0) > 0
     )
 
     if (validMedications.length === 0 && validTherapies.length === 0) {
@@ -219,18 +247,18 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
       ...validMedications.map(med => ({
         medication_id: med.medication_id,
         therapy_id: undefined,
-        dosage: med.dosage,
-        frequency: med.frequency,
-        duration: med.duration,
-        instructions: med.instructions
+        dosage: med.dosage || '',
+        frequency: med.frequency || '',
+        duration: med.duration || '',
+        instructions: med.instructions || ''
       })),
       ...validTherapies.map(therapy => ({
         medication_id: undefined,
         therapy_id: therapy.therapy_id,
-        dosage: therapy.procedure, // Use procedure as dosage equivalent
-        frequency: therapy.timing, // Use timing as frequency equivalent
-        duration: therapy.duration,
-        instructions: therapy.instructions
+        dosage: therapy.procedure || '', // Use procedure as dosage equivalent
+        frequency: therapy.timing || '', // Use timing as frequency equivalent
+        duration: therapy.duration || '',
+        instructions: therapy.instructions || ''
       }))
     ]
 
@@ -254,6 +282,20 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
         </div>
 
         <form onSubmit={handleSubmit} className="p-4 space-y-4 overflow-y-auto flex-1">
+          {/* Quick Start Note */}
+          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-start gap-3">
+              <div className="text-blue-600 text-lg">⚡</div>
+              <div>
+                <h3 className="font-medium text-blue-800 mb-1">Quick Prescription Creation</h3>
+                <p className="text-sm text-blue-600">
+                  Create prescription templates fast! Only the prescription name and at least one medication/therapy are required. 
+                  You can add detailed dosage, frequency, and duration information later when needed.
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* Basic Information */}
           <div className="space-y-4">
             <div>
@@ -272,14 +314,14 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Description
+                Description (Optional)
               </label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 className="input-field"
-                rows={3}
-                placeholder="Brief description of this prescription template"
+                rows={2}
+                placeholder="Brief description of when to use this prescription template (e.g., 'For common cold symptoms', 'Post-surgery pain management')"
               />
             </div>
           </div>
@@ -291,11 +333,36 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
                 <h3 className="text-lg font-medium text-green-800">Medications</h3>
                 <span className="text-sm text-green-600">• Drugs to be dispensed from pharmacy</span>
               </div>
+              <p className="text-sm text-green-600 mb-3">
+                💡 <strong>Quick Tip:</strong> Only the medication name is required. You can add dosage, frequency, and duration details later.
+              </p>
               <DrugAddSearch
                 onDrugAdd={handleAddMedicationFromSearch}
                 placeholder="Search and add medications..."
                 onAddNew={handleAddNewDrug}
               />
+              
+              {/* Quick Add Medication */}
+              <div className="mt-3 p-3 bg-green-100 border border-green-300 rounded-lg">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={quickAddMedication}
+                    onChange={(e) => setQuickAddMedication(e.target.value)}
+                    placeholder="Or type medication name to add quickly..."
+                    className="input-field flex-1"
+                    onKeyPress={(e) => e.key === 'Enter' && handleQuickAddMedication()}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleQuickAddMedication}
+                    disabled={!quickAddMedication.trim()}
+                    className="btn-primary px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Quick Add
+                  </button>
+                </div>
+              </div>
             </div>
 
             {medications.length > 0 && (
@@ -316,7 +383,7 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                       <div>
                         <label className="block text-sm font-medium text-green-700 mb-1">
-                          Dosage *
+                          Dosage (Optional)
                         </label>
                         <input
                           type="text"
@@ -324,13 +391,12 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
                           onChange={(e) => handleMedicationChange(index, 'dosage', e.target.value)}
                           className="input-field"
                           placeholder="e.g., 1 tablet, 5ml"
-                          required
                         />
                       </div>
 
                       <div>
                         <label className="block text-sm font-medium text-green-700 mb-1">
-                          Frequency *
+                          Frequency (Optional)
                         </label>
                         <input
                           type="text"
@@ -338,13 +404,12 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
                           onChange={(e) => handleMedicationChange(index, 'frequency', e.target.value)}
                           className="input-field"
                           placeholder="e.g., Twice daily"
-                          required
                         />
                       </div>
 
                       <div>
                         <label className="block text-sm font-medium text-green-700 mb-1">
-                          Duration *
+                          Duration (Optional)
                         </label>
                         <input
                           type="text"
@@ -352,7 +417,6 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
                           onChange={(e) => handleMedicationChange(index, 'duration', e.target.value)}
                           className="input-field"
                           placeholder="e.g., 7 days"
-                          required
                         />
                       </div>
                     </div>
@@ -382,11 +446,36 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
                 <h3 className="text-lg font-medium text-blue-800">Immediate Therapies</h3>
                 <span className="text-sm text-blue-600">• Treatments performed immediately in hospital</span>
               </div>
+              <p className="text-sm text-blue-600 mb-3">
+                💡 <strong>Quick Tip:</strong> Only the therapy name is required. You can add procedure, timing, and duration details later.
+              </p>
               <TherapyAddSearch
                 onTherapyAdd={handleAddTherapyFromSearch}
                 placeholder="Search and add therapies..."
                 onAddNew={handleAddNewTherapy}
               />
+              
+              {/* Quick Add Therapy */}
+              <div className="mt-3 p-3 bg-blue-100 border border-blue-300 rounded-lg">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={quickAddTherapy}
+                    onChange={(e) => setQuickAddTherapy(e.target.value)}
+                    placeholder="Or type therapy name to add quickly..."
+                    className="input-field flex-1"
+                    onKeyPress={(e) => e.key === 'Enter' && handleQuickAddTherapy()}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleQuickAddTherapy}
+                    disabled={!quickAddTherapy.trim()}
+                    className="btn-primary px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Quick Add
+                  </button>
+                </div>
+              </div>
             </div>
 
             {therapies.length > 0 && (
@@ -407,7 +496,7 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                       <div>
                         <label className="block text-sm font-medium text-blue-700 mb-1">
-                          Procedure *
+                          Procedure (Optional)
                         </label>
                         <input
                           type="text"
@@ -415,13 +504,12 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
                           onChange={(e) => handleTherapyChange(index, 'procedure', e.target.value)}
                           className="input-field"
                           placeholder="e.g., IV injection"
-                          required
                         />
                       </div>
 
                       <div>
                         <label className="block text-sm font-medium text-blue-700 mb-1">
-                          Timing *
+                          Timing (Optional)
                         </label>
                         <input
                           type="text"
@@ -429,13 +517,12 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
                           onChange={(e) => handleTherapyChange(index, 'timing', e.target.value)}
                           className="input-field"
                           placeholder="e.g., Immediately"
-                          required
                         />
                       </div>
 
                       <div>
                         <label className="block text-sm font-medium text-blue-700 mb-1">
-                          Duration *
+                          Duration (Optional)
                         </label>
                         <input
                           type="text"
@@ -443,7 +530,6 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
                           onChange={(e) => handleTherapyChange(index, 'duration', e.target.value)}
                           className="input-field"
                           placeholder="e.g., Single dose"
-                          required
                         />
                       </div>
                     </div>
@@ -511,7 +597,7 @@ export function CreatePrescriptionModal({ diseases, onSubmit, onClose }: CreateP
               type="submit"
               className="btn-primary"
             >
-              Create Prescription
+              Create Prescription Template
             </button>
           </div>
         </form>
