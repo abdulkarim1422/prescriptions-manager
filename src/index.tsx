@@ -139,8 +139,17 @@ api.post('/search', async (c) => {
       }
     }
 
-    // Log search
-    await db.logSearch(query, type, Array.isArray(results.results) ? results.results.length : Object.keys(results.results).length)
+    // Log search - for 'all' type searches, log each individual search type
+    if (type === 'all') {
+      // Log individual searches for each type when doing comprehensive search
+      await Promise.all([
+        db.logSearch(query, 'disease', (results.results as any).diseases?.length || 0),
+        db.logSearch(query, 'medication', (results.results as any).medications?.length || 0),
+        db.logSearch(query, 'prescription', (results.results as any).prescriptions?.length || 0)
+      ])
+    } else {
+      await db.logSearch(query, type, Array.isArray(results.results) ? results.results.length : Object.keys(results.results).length)
+    }
 
     return c.json({
       ...results,
