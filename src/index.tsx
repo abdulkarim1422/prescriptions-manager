@@ -4,10 +4,22 @@ import { DatabaseService } from './lib/database'
 import { AIService, createAIService } from './lib/ai'
 import { Env, SearchRequest, CreatePrescriptionRequest, CreateDiseaseRequest, CreateMedicationRequest, BulkImportDrugsRequest, CreateDrugRequest, Disease } from './types'
 
-const app = new Hono<{ Bindings: Env }>()
+interface CloudflareEnv extends Env {
+  ASSETS: Fetcher
+}
+
+const app = new Hono<{ Bindings: CloudflareEnv }>()
 
 // Middleware
 app.use('*', cors())
+
+// Serve static assets from the ASSETS binding
+app.get('/assets/*', async (c) => {
+  const url = new URL(c.req.url)
+  const assetPath = url.pathname.replace('/assets/', '')
+  const assetRequest = new Request(`http://localhost/${assetPath}`)
+  return c.env.ASSETS.fetch(assetRequest)
+})
 
 // Health check
 app.get('/health', (c) => {
@@ -757,6 +769,11 @@ app.get('*', async (c) => {
     return c.notFound()
   }
   
+  // Skip static assets - they should be handled by the assets route above
+  if (path.startsWith('/assets/')) {
+    return c.notFound()
+  }
+  
   // Serve the client app for all other routes
   return c.html(`<!DOCTYPE html>
 <html lang="en">
@@ -764,10 +781,11 @@ app.get('*', async (c) => {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Prescriptions Manager</title>
+    <link rel="stylesheet" href="/assets/client.css">
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/client.tsx"></script>
+    <script type="module" src="/assets/client.js"></script>
   </body>
 </html>`)
 })
