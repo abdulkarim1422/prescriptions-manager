@@ -344,53 +344,115 @@ export function PrescriptionsApp() {
     }
   }
 
-  // Search View Component
-  const SearchView = () => (
-    <div className="space-y-6">
-      <div className="card">
-        <h2 className="text-xl font-semibold mb-4">Search Prescriptions</h2>
-        <SearchBar 
-          onSearch={handleSearch}
-          loading={loading}
-          placeholder="Search for diseases, medications, or prescriptions..."
-        />
-      </div>
-      
-      {loading && (
-        <div className="text-center py-8">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-          <p className="mt-2 text-gray-600">Loading...</p>
-        </div>
-      )}
-      
-      {(Array.isArray(searchResults) ? searchResults.length > 0 : Object.keys(searchResults).length > 0) && (
-        <div className="card">
-          <h3 className="text-lg font-medium mb-4">Search Results</h3>
-          <div className="space-y-4">
-            {Array.isArray(searchResults) ? 
-              searchResults.map((result, index) => (
-                <div key={index} className="p-4 border border-gray-200 rounded-lg">
-                  <h4 className="font-medium">{result.name}</h4>
-                  <p className="text-sm text-gray-600">{result.description || result.code}</p>
+  // Enhanced Search View Component
+  const SearchView = () => {
+    const renderSearchResults = () => {
+      if (loading) {
+        return (
+          <div className="text-center py-8">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+            <p className="mt-2 text-gray-600">Loading...</p>
+          </div>
+        )
+      }
+
+      if (!searchResults || (Array.isArray(searchResults) && searchResults.length === 0) || 
+          (!Array.isArray(searchResults) && Object.keys(searchResults).length === 0)) {
+        return null
+      }
+
+      // Handle single-type search results
+      if (Array.isArray(searchResults)) {
+        return (
+          <div className="card">
+            <h3 className="text-lg font-medium mb-4">Search Results ({searchResults.length})</h3>
+            <div className="space-y-3">
+              {searchResults.map((result, index) => (
+                <div key={index} className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
+                  <h4 className="font-medium text-primary-700">{result.name || result.product_name}</h4>
+                  {result.code && <p className="text-sm text-gray-500">Code: {result.code}</p>}
+                  {result.atc_code && <p className="text-sm text-gray-500">ATC: {result.atc_code}</p>}
+                  {result.active_ingredient && <p className="text-sm text-gray-600">Active Ingredient: {result.active_ingredient}</p>}
+                  {result.category && <p className="text-sm text-gray-600">Category: {result.category}</p>}
+                  <p className="text-sm text-gray-600">{result.description}</p>
                 </div>
-              )) : 
-              Object.entries(searchResults).map(([type, results]) => (
-                <div key={type} className="space-y-2">
-                  <h4 className="font-medium capitalize">{type}</h4>
-                  {Array.isArray(results) && results.map((item, index) => (
-                    <div key={index} className="p-3 bg-gray-50 rounded">
-                      <div className="font-medium">{item.name}</div>
-                      <div className="text-sm text-gray-600">{item.description || item.code}</div>
+              ))}
+            </div>
+          </div>
+        )
+      }
+
+      // Handle comprehensive search results (all categories)
+      const results = searchResults as any
+      const sections = [
+        { key: 'findings', title: 'Findings', icon: '🔍' },
+        { key: 'diseases', title: 'Diseases', icon: '🦠' },
+        { key: 'medications', title: 'Medications', icon: '💊' },
+        { key: 'drugs', title: 'Drugs', icon: '💉' },
+        { key: 'therapies', title: 'Therapies', icon: '🩺' },
+        { key: 'prescription_templates', title: 'Prescription Templates', icon: '📋' }
+      ]
+
+      return (
+        <div className="space-y-6">
+          {sections.map(section => {
+            const sectionResults = results[section.key] || []
+            if (!Array.isArray(sectionResults) || sectionResults.length === 0) return null
+
+            return (
+              <div key={section.key} className="card">
+                <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
+                  <span>{section.icon}</span>
+                  {section.title} ({sectionResults.length})
+                </h3>
+                <div className="space-y-3">
+                  {sectionResults.slice(0, 5).map((item: any, index: number) => (
+                    <div key={index} className="p-3 bg-gray-50 rounded-lg hover:bg-gray-100">
+                      <div className="font-medium text-primary-700">
+                        {item.name || item.product_name}
+                      </div>
+                      {item.code && <div className="text-xs text-gray-500">Code: {item.code}</div>}
+                      {item.atc_code && <div className="text-xs text-gray-500">ATC: {item.atc_code}</div>}
+                      {item.active_ingredient && <div className="text-xs text-gray-600">Active: {item.active_ingredient}</div>}
+                      {item.category && <div className="text-xs text-gray-600">Category: {item.category}</div>}
+                      {item.description && (
+                        <div className="text-sm text-gray-600 mt-1">
+                          {item.description.length > 100 ? 
+                            `${item.description.substring(0, 100)}...` : 
+                            item.description
+                          }
+                        </div>
+                      )}
                     </div>
                   ))}
+                  {sectionResults.length > 5 && (
+                    <div className="text-sm text-gray-500 text-center py-2">
+                      ... and {sectionResults.length - 5} more results
+                    </div>
+                  )}
                 </div>
-              ))
-            }
-          </div>
+              </div>
+            )
+          })}
         </div>
-      )}
-    </div>
-  )
+      )
+    }
+
+    return (
+      <div className="space-y-6">
+        <div className="card">
+          <h2 className="text-xl font-semibold mb-4">Search Medical Database</h2>
+          <SearchBar 
+            onSearch={handleSearch}
+            loading={loading}
+            placeholder="Search across findings, diseases, medications, drugs, therapies, and prescriptions..."
+          />
+        </div>
+        
+        {renderSearchResults()}
+      </div>
+    )
+  }
 
   // Prescriptions View Component
   const PrescriptionsView = () => (

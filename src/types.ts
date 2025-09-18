@@ -10,7 +10,7 @@ export interface Finding {
 // Database types
 export interface Disease {
   id: number;
-  code: string; // ICD-10 code
+  code?: string; // ICD-10 code - optional to match CreateDiseaseRequest
   name: string;
   description?: string;
   category?: string;
@@ -68,7 +68,7 @@ export interface Therapy {
 export interface PrescriptionItem {
   id: number;
   prescription_template_id: number;
-  medication_id: number;
+  medication_id?: number; // Optional to allow therapy-only items
   therapy_id?: number;
   dosage: string;
   frequency: string;
@@ -91,7 +91,7 @@ export interface DiseasePrescription {
 export interface SearchLog {
   id: number;
   query: string;
-  search_type: 'disease' | 'medication' | 'prescription';
+  search_type: 'disease' | 'medication' | 'prescription' | 'finding' | 'drug' | 'therapy' | 'all';
   results_count: number;
   user_id?: string;
   created_at: string;
@@ -117,7 +117,7 @@ export interface AppConfig {
 // API Request/Response types
 export interface SearchRequest {
   query: string;
-  type: 'disease' | 'medication' | 'prescription' | 'all';
+  type: 'disease' | 'medication' | 'prescription' | 'finding' | 'drug' | 'therapy' | 'all';
   limit?: number;
   offset?: number;
   ai_enabled?: boolean;

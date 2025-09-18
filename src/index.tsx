@@ -100,20 +100,31 @@ api.post('/search', async (c) => {
         results = await db.searchPrescriptions(query, limit, offset)
         break
       case 'all':
-        const [diseases, medications, prescriptions] = await Promise.all([
-          db.searchDiseases(query, 5, 0),
-          db.searchMedications(query, 5, 0),
-          db.searchPrescriptions(query, 5, 0)
-        ])
+        // Use the new comprehensive search function
+        const allResults = await db.searchAllEnhanced(query, {
+          findingsLimit: 5,
+          diseasesLimit: 5,
+          medicationsLimit: 5,
+          drugsLimit: 5,
+          therapiesLimit: 5,
+          prescriptionsLimit: 5,
+          offset
+        })
         results = {
-          results: {
-            diseases: diseases.results,
-            medications: medications.results,
-            prescriptions: prescriptions.results
-          },
-          total: diseases.total + medications.total + prescriptions.total,
-          has_more: diseases.has_more || medications.has_more || prescriptions.has_more
+          results: allResults.results,
+          total: allResults.total,
+          has_more: allResults.has_more,
+          counts: allResults.counts
         }
+        break
+      case 'finding':
+        results = await db.searchFindings(query, limit, offset)
+        break
+      case 'drug':
+        results = await db.searchDrugs(query, limit, offset)
+        break
+      case 'therapy':
+        results = await db.searchTherapies(query, limit, offset)
         break
     }
 
@@ -139,14 +150,13 @@ api.post('/search', async (c) => {
       }
     }
 
-    // Log search - for 'all' type searches, log each individual search type
+    // Log search - for 'all' type searches, log comprehensive search
     if (type === 'all') {
-      // Log individual searches for each type when doing comprehensive search
-      await Promise.all([
-        db.logSearch(query, 'disease', (results.results as any).diseases?.length || 0),
-        db.logSearch(query, 'medication', (results.results as any).medications?.length || 0),
-        db.logSearch(query, 'prescription', (results.results as any).prescriptions?.length || 0)
-      ])
+      // Log the comprehensive search with total results count
+      const totalResults = (results as any).counts ? 
+        Object.values((results as any).counts).reduce((sum: number, count: unknown) => sum + (typeof count === 'number' ? count : 0), 0) :
+        (Array.isArray(results.results) ? results.results.length : Object.keys(results.results).length);
+      await db.logSearch(query, 'all', totalResults);
     } else {
       await db.logSearch(query, type, Array.isArray(results.results) ? results.results.length : Object.keys(results.results).length)
     }

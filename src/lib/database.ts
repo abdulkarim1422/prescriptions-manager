@@ -1,4 +1,4 @@
-import { Env, Disease, PrescriptionTemplate, Medication, PrescriptionItem, DiseasePrescription, SearchResponse, Drug, CreateDrugRequest } from '../types';
+import { Env, Finding, Disease, PrescriptionTemplate, Medication, PrescriptionItem, DiseasePrescription, SearchResponse, Drug, CreateDrugRequest } from '../types';
 
 export class DatabaseService {
   constructor(private db: D1Database) {}
@@ -71,7 +71,7 @@ export class DatabaseService {
     return result || null;
   }
 
-  async createFinding(finding) {
+  async createFinding(finding: Omit<Finding, 'id' | 'created_at' | 'updated_at'>) {
     const result = await this.db.prepare(
       'INSERT INTO findings (code, name, description, category) VALUES (?, ?, ?, ?) RETURNING *'
     ).bind(
@@ -83,7 +83,7 @@ export class DatabaseService {
     return result;
   }
 
-  async updateFinding(id, finding) {
+  async updateFinding(id: number, finding: Partial<Finding>) {
     const result = await this.db.prepare(
       'UPDATE findings SET code = COALESCE(?, code), name = COALESCE(?, name), description = COALESCE(?, description), category = COALESCE(?, category), updated_at = CURRENT_TIMESTAMP WHERE id = ? RETURNING *'
     ).bind(
@@ -97,12 +97,12 @@ export class DatabaseService {
     return result;
   }
 
-  async deleteFinding(id) {
+  async deleteFinding(id: number) {
     const result = await this.db.prepare('DELETE FROM findings WHERE id = ?').bind(id).run();
     if (!result.success) throw new Error('Failed to delete finding');
   }
 
-  async bulkImportFindings(items, replaceExisting = false) {
+  async bulkImportFindings(items: any[], replaceExisting: boolean = false) {
     let imported = 0;
     let errors = 0;
     for (const item of items) {
@@ -961,6 +961,122 @@ export class DatabaseService {
     `).bind(prescriptionId).all();
 
     return result.results as unknown as Disease[];
+  }
+
+  // Comprehensive search across all tables
+  async searchAll(query: string, limit: number = 5, offset: number = 0): Promise<{
+    results: {
+      findings: any[];
+      diseases: any[];
+      medications: any[];
+      drugs: any[];
+      therapies: any[];
+      prescription_templates: any[];
+    };
+    total: number;
+    has_more: boolean;
+  }> {
+    const searchQuery = `%${query}%`;
+    
+    // Search all tables in parallel
+    const [findings, diseases, medications, drugs, therapies, prescriptions] = await Promise.all([
+      this.searchFindings(query, limit, offset),
+      this.searchDiseases(query, limit, offset),
+      this.searchMedications(query, limit, offset),
+      this.searchDrugs(query, limit, offset),
+      this.searchTherapies(query, limit, offset),
+      this.searchPrescriptions(query, limit, offset)
+    ]);
+
+    const total = findings.total + diseases.total + medications.total + drugs.total + therapies.total + prescriptions.total;
+    const has_more = findings.has_more || diseases.has_more || medications.has_more || drugs.has_more || therapies.has_more || prescriptions.has_more;
+
+    return {
+      results: {
+        findings: findings.results,
+        diseases: diseases.results,
+        medications: medications.results,
+        drugs: drugs.results,
+        therapies: therapies.results,
+        prescription_templates: prescriptions.results
+      },
+      total,
+      has_more
+    };
+  }
+
+  // Enhanced search with configurable limits per table
+  async searchAllEnhanced(query: string, options: {
+    findingsLimit?: number;
+    diseasesLimit?: number;
+    medicationsLimit?: number;
+    drugsLimit?: number;
+    therapiesLimit?: number;
+    prescriptionsLimit?: number;
+    offset?: number;
+  } = {}): Promise<{
+    results: {
+      findings: any[];
+      diseases: any[];
+      medications: any[];
+      drugs: any[];
+      therapies: any[];
+      prescription_templates: any[];
+    };
+    total: number;
+    has_more: boolean;
+    counts: {
+      findings: number;
+      diseases: number;
+      medications: number;
+      drugs: number;
+      therapies: number;
+      prescription_templates: number;
+    };
+  }> {
+    const {
+      findingsLimit = 10,
+      diseasesLimit = 10,
+      medicationsLimit = 10,
+      drugsLimit = 10,
+      therapiesLimit = 10,
+      prescriptionsLimit = 10,
+      offset = 0
+    } = options;
+
+    // Search all tables in parallel
+    const [findings, diseases, medications, drugs, therapies, prescriptions] = await Promise.all([
+      this.searchFindings(query, findingsLimit, offset),
+      this.searchDiseases(query, diseasesLimit, offset),
+      this.searchMedications(query, medicationsLimit, offset),
+      this.searchDrugs(query, drugsLimit, offset),
+      this.searchTherapies(query, therapiesLimit, offset),
+      this.searchPrescriptions(query, prescriptionsLimit, offset)
+    ]);
+
+    const total = findings.total + diseases.total + medications.total + drugs.total + therapies.total + prescriptions.total;
+    const has_more = findings.has_more || diseases.has_more || medications.has_more || drugs.has_more || therapies.has_more || prescriptions.has_more;
+
+    return {
+      results: {
+        findings: findings.results,
+        diseases: diseases.results,
+        medications: medications.results,
+        drugs: drugs.results,
+        therapies: therapies.results,
+        prescription_templates: prescriptions.results
+      },
+      total,
+      has_more,
+      counts: {
+        findings: findings.total,
+        diseases: diseases.total,
+        medications: medications.total,
+        drugs: drugs.total,
+        therapies: therapies.total,
+        prescription_templates: prescriptions.total
+      }
+    };
   }
 
   // Search logs

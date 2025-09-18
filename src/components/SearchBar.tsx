@@ -1,25 +1,60 @@
-import { useState } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { Search } from 'lucide-react'
 import { SearchBarProps, SearchRequest } from '../types'
 
 export function SearchBar({ onSearch, placeholder, defaultType = 'all', loading }: SearchBarProps) {
   const [query, setQuery] = useState('')
   const [searchType, setSearchType] = useState<SearchRequest['type']>(defaultType)
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (query.trim()) {
+      // Clear any pending delayed search
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current)
+        searchTimeoutRef.current = null
+      }
       onSearch(query.trim(), searchType)
     }
   }
 
+  const debouncedSearch = useCallback((searchQuery: string, type: SearchRequest['type']) => {
+    // Clear existing timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current)
+    }
+
+    // Set new timeout for debounced search
+    searchTimeoutRef.current = setTimeout(() => {
+      if (searchQuery.trim()) {
+        onSearch(searchQuery.trim(), type)
+      }
+    }, 300) // 300ms delay to reduce rapid API calls
+  }, [onSearch])
+
   const handleInputChange = (value: string) => {
     setQuery(value)
-    // Trigger search on every keystroke for better UX
-    if (value.trim().length > 2) {
-      onSearch(value.trim(), searchType)
+    
+    // Only trigger auto-search if we have 3 or more characters
+    // This prevents premature searches and maintains better UX
+    if (value.trim().length >= 3) {
+      debouncedSearch(value.trim(), searchType)
     } else if (value.trim().length === 0) {
-      onSearch('', searchType) // Clear results
+      // Clear results when input is empty
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current)
+        searchTimeoutRef.current = null
+      }
+      onSearch('', searchType)
+    }
+  }
+
+  const handleTypeChange = (newType: SearchRequest['type']) => {
+    setSearchType(newType)
+    // Re-trigger search with new type if we have a query
+    if (query.trim().length >= 3) {
+      debouncedSearch(query.trim(), newType)
     }
   }
 
@@ -40,13 +75,16 @@ export function SearchBar({ onSearch, placeholder, defaultType = 'all', loading 
         
         <select
           value={searchType}
-          onChange={(e) => setSearchType(e.target.value as SearchRequest['type'])}
-          className="input-field w-40"
+          onChange={(e) => handleTypeChange(e.target.value as SearchRequest['type'])}
+          className="input-field w-44"
           disabled={loading}
         >
-          <option value="all">All</option>
+          <option value="all">All Categories</option>
           <option value="disease">Diseases</option>
+          <option value="finding">Findings</option>
           <option value="medication">Medications</option>
+          <option value="drug">Drugs</option>
+          <option value="therapy">Therapies</option>
           <option value="prescription">Prescriptions</option>
         </select>
         
